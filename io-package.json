@@ -1,13 +1,18 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.0.1",
-    "titleLang": {"en": "Coffee Link", "de": "Coffee Link"},
+    "version": "0.0.2",
+    "titleLang": {
+      "en": "Coffee Link",
+      "de": "Coffee Link"
+    },
     "desc": {
       "en": "Read-only status and lifetime counters of De'Longhi Coffee Link machines",
       "de": "Lesender Status und Getränkezähler für De'Longhi-Coffee-Link-Kaffeemaschinen"
     },
-    "authors": ["chrvidal"],
+    "authors": [
+      "chrvidal"
+    ],
     "license": "MIT",
     "platform": "Javascript/Node.js",
     "mode": "daemon",
@@ -16,28 +21,62 @@
     "enabled": false,
     "connectionType": "cloud",
     "dataSource": "poll",
-    "adminUI": {"config": "json"},
-    "dependencies": [{"js-controller": ">=7.0.7"}],
-    "globalDependencies": [{"admin": ">=7.8.23"}],
+    "adminUI": {
+      "config": "json"
+    },
+    "dependencies": [
+      {
+        "js-controller": ">=7.0.7"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=7.8.23"
+      }
+    ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
-      "0.0.1": {"en": "Initial read-only development version", "de": "Erste lesende Entwicklungsversion"}
+      "0.0.2": {
+        "en": "Add read-only last-cloud-change timestamps for coffee and milk totals",
+        "de": "Zeitpunkte der letzten Cloud-Änderung für Kaffee- und Milchzähler anzeigen"
+      },
+      "0.0.1": {
+        "en": "Initial read-only development version",
+        "de": "Erste lesende Entwicklungsversion"
+      }
     }
   },
-  "native": {"email": "", "password": "", "pollInterval": 15},
-  "encryptedNative": ["password"],
-  "protectedNative": ["password"],
+  "native": {
+    "email": "",
+    "password": "",
+    "pollInterval": 15
+  },
+  "encryptedNative": [
+    "password"
+  ],
+  "protectedNative": [
+    "password"
+  ],
   "instanceObjects": [
     {
       "_id": "info",
       "type": "channel",
-      "common": {"name": "Information"},
+      "common": {
+        "name": "Information"
+      },
       "native": {}
     },
     {
       "_id": "info.connection",
       "type": "state",
-      "common": {"name": "Coffee Link connection", "type": "boolean", "role": "indicator.connected", "read": true, "write": false, "def": false},
+      "common": {
+        "name": "Coffee Link connection",
+        "type": "boolean",
+        "role": "indicator.connected",
+        "read": true,
+        "write": false,
+        "def": false
+      },
       "native": {}
     }
   ]

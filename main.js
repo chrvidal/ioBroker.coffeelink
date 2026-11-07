@@ -81,6 +81,21 @@ class CoffeeLink extends utils.Adapter {
                 for (const item of getCounters(properties)) {
                     await this.state(`${root}.counters.${item.id}`, item.name, 'number', 'value', item.value);
                 }
+                // Diagnose only: when did the cloud last CHANGE the counter?
+                // A fresh adapter poll does not imply fresh counter data.
+                await this.setObjectNotExistsAsync(`${root}.diagnostics`, {
+                    type: 'channel', common: { name: 'Cloud diagnostics (read-only)' }, native: {},
+                });
+                for (const [key, source, label] of [
+                    ['blackCoffee', 'd700_tot_bev_b', 'Only-coffee total'],
+                    ['milkCoffee', 'd701_tot_bev_bw', 'Coffee-with-milk total'],
+                ]) {
+                    const raw = properties.get(source)?.data_updated_at;
+                    const timestamp = typeof raw === 'string' ? Date.parse(raw) : NaN;
+                    await this.state(`${root}.diagnostics.${key}CloudUpdatedAt`,
+                        `${label} last cloud change (UTC)`, 'string', 'text',
+                        Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : 'unknown');
+                }
             }
             await this.setStateAsync('info.connection', { val: online, ack: true });
         } catch (error) {

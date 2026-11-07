@@ -39,6 +39,8 @@ test('creates read-only ioBroker states for connected machine', async () => {
         readProperties: async () => new Map([
             ['d706_tot_id2_coffee', { value: '42' }],
             ['d711_id8_lattmacc', { value: '12' }],
+            ['d700_tot_bev_b', { value: '80', data_updated_at: '2026-10-01T10:00:00Z' }],
+            ['d701_tot_bev_bw', { value: '25', data_updated_at: '2026-10-02T10:00:00Z' }],
             ['d556_water_hardness', { value: '96874' }],
         ]),
     };
@@ -51,6 +53,13 @@ test('creates read-only ioBroker states for connected machine', async () => {
     assert.equal(adapter.objects.get(coffeeId).common.write, false);
     assert.equal([...adapter.states.keys()].some(x => x.includes('hardness')), false);
     assert.equal(coffeeId.includes('SYNTHETIC-DEVICE-1'), false);
+    const blackTime = [...adapter.states.keys()].find(x => x.endsWith('.diagnostics.blackCoffeeCloudUpdatedAt'));
+    const milkTime = [...adapter.states.keys()].find(x => x.endsWith('.diagnostics.milkCoffeeCloudUpdatedAt'));
+    assert.ok(blackTime);
+    assert.ok(milkTime);
+    assert.equal(adapter.states.get(blackTime).val, '2026-10-01T10:00:00.000Z');
+    assert.equal(adapter.states.get(milkTime).val, '2026-10-02T10:00:00.000Z');
+    assert.equal(adapter.objects.get(blackTime).common.write, false);
 });
 
 test('cloud failure marks connection false without writing cloud values', async () => {

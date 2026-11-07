@@ -8,7 +8,7 @@ project, not a fork of or dependency on any other ioBroker De'Longhi adapter.
 
 ## Status
 
-**Early development version 0.0.1: NOT released on npm. Do not install in your
+**Early development version 0.0.2: NOT released on npm. Do not install in your
 production ioBroker system.**
 
 Cloud read access was verified manually with a **PrimaDonna Soul ECAM612.55**:
@@ -20,12 +20,23 @@ Current implementation:
 - Coffee Link (Gigya) + Ayla EU cloud authentication;
 - list up to five connected coffee machines;
 - read 18 identified beverage/maintenance counters;
+- expose the De'Longhi cloud last-change times for only-coffee and coffee-with-milk totals under `machines.*.diagnostics`;
 - expose machine cloud reachability separately from its last known state;
 - parse `d302_monitor` status packets, including CRC validation;
 - mark old monitor data **stale** rather than claiming the machine is currently ready;
 - poll every 15 minutes by default, configurable 5–1440 minutes;
 - protect configured password using ioBroker encryptedNative and protectedNative;
 - NO brew requests, NO standby/wake commands, NO changes to the device.
+
+## Compare with statistics on the machine
+
+The ECAM612.55 machine screen can report different totals from Ayla cloud values.
+Do not assume that `info.connection = true` means the counters are up to date.
+`machines.*.diagnostics.blackCoffeeCloudUpdatedAt` and
+`machines.*.diagnostics.milkCoffeeCloudUpdatedAt` show the last time the
+cloud **changed those two values**, in UTC; they do not measure last polling.
+If these dates are recent and counts disagree, counting rules may differ.
+Avoid guessed offsets until confirmed by controlled real-machine measurements.
 
 ## Planned
 
