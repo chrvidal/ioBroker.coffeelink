@@ -48,3 +48,31 @@ test('active registration sends only explicit local callback setup once',async()
     assert.equal(calls[0].params.method,'PUT');
     assert.deepEqual(JSON.parse(calls[0].params.body),{local_reg:{ip:'192.168.12.33',notify:1,port:10275,uri:'/local_lan'}});
 });
+
+
+test('failed registration reports safe HTTP status without leaking response body',async()=>{
+    const statuses=[];
+    const transport=new CoffeeLanSession({
+        host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
+        fetchFn:async()=>({ok:false,status:404,text:async()=> 'SECRET-NEVER-LOG'}),
+        onStatus:s=>statuses.push(s),
+    });
+    transport.configure({dsn:'testdsn',key:'secret-key-not-for-logs'});
+    transport.server={listening:true};
+    await transport.registerOnce();
+    assert.deepEqual(statuses,['register-http-404']);
+    assert.equal(transport.registered,false);
+});
+
+test('failed registration reports network failure category without secrets',async()=>{
+    const statuses=[];
+    const transport=new CoffeeLanSession({
+        host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
+        fetchFn:async()=>{const error=new TypeError('secret');error.cause={code:'ECONNREFUSED'};throw error;},
+        onStatus:s=>statuses.push(s),
+    });
+    transport.configure({dsn:'testdsn',key:'secret-key-not-for-logs'});
+    transport.server={listening:true};
+    await transport.registerOnce();
+    assert.deepEqual(statuses,['register-connection-refused']);
+});

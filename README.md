@@ -8,7 +8,7 @@ project, not a fork of or dependency on any other ioBroker De'Longhi adapter.
 
 ## Status
 
-**Early development version 0.0.3: NOT released on npm. Do not install in your
+**Early development version 0.0.5: NOT released on npm. Do not install in your
 production ioBroker system.**
 
 Cloud read access was verified manually with a **PrimaDonna Soul ECAM612.55**:
@@ -111,3 +111,17 @@ By default the adapter remains cloud-only or passive. The additional **LAN activ
 * Stores any locally received counters under `machines.<id>.lan.counters.*`, separate from cloud counters until checked against the machine display.
 * Status state `info.lanStatus`: `disabled`, `registered`, `encrypted`, `no-lan-key`, `register-failed`, `connection-failed`.
 * The LAN integration is experimental and not confirmed with a live machine. Cloud mode remains functional independently.
+
+
+## LAN registration diagnostic (v0.0.5)
+
+Version 0.0.5 exposes the **HTTP status code** or a coarse network failure
+category for an attempted local `PUT /local_reg.json`. The code is shown in
+`coffeelink.0.info.lanStatus`, such as `register-http-404`, `register-http-403`,
+`register-timeout`, or `register-connection-refused`. No response bodies,
+account secrets, or LAN keys are logged or put into states. A `404` from
+`GET /local_reg.json` is **not** sufficient to diagnose the supported `PUT`.
+
+This diagnostic does not add any requests or enable active LAN by default.
+The opt-in registration still changes the device's local callback target
+if accepted, which may affect the official Coffee Link app.
