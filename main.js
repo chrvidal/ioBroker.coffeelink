@@ -4,6 +4,7 @@ const { createHash } = require('node:crypto');
 const utils = require('@iobroker/adapter-core');
 const { CoffeeCloudClient } = require('./lib/cloud-client');
 const { getCounters, latestMonitor } = require('./lib/measurements');
+const { PassiveLanReceiver } = require('./lib/lan-receiver');
 
 const DEVICE_LIMIT = 5;
 
@@ -12,6 +13,7 @@ class CoffeeLink extends utils.Adapter {
         super({ ...options, name: 'coffeelink' });
         this.client = null;
         this.pollTimer = null;
+        this.lanReceiver = null;
         this.busy = false;
         this.stopping = false;
         this.on('ready', this.onReady.bind(this));
@@ -25,6 +27,35 @@ class CoffeeLink extends utils.Adapter {
             common: { name: 'Coffee Link devices', type: 'number', role: 'value', read: true, write: false, def: 0 },
             native: {},
         });
+        await this.setObjectNotExistsAsync('info.lanListener', {
+            type: 'state',
+            common: { name: 'Passive LAN receiver listening', type: 'boolean', role: 'indicator', read: true, write: false, def: false },
+            native: {},
+        });
+        await this.setStateAsync('info.lanListener', { val: false, ack: true });
+        await this.setObjectNotExistsAsync('info.lanLastContact', {
+            type: 'state',
+            common: { name: 'Last unsupported LAN callback', type: 'string', role: 'text', read: true, write: false, def: '' },
+            native: {},
+        });
+        if (this.config.lanReceiverEnabled === true) {
+            try {
+                this.lanReceiver = new PassiveLanReceiver({
+                    host: this.config.lanListenAddress || '127.0.0.1',
+                    port: Number(this.config.lanListenPort) || 10275,
+                    machineIp: this.config.lanMachineIp || '',
+                    onContact: ({ at }) => {
+                        if (!this.stopping) void this.setStateAsync('info.lanLastContact', { val: at, ack: true });
+                    },
+                });
+                await this.lanReceiver.start();
+                await this.setStateAsync('info.lanListener', { val: true, ack: true });
+                this.log.info('Passive LAN listener ready; registration disabled; no machine commands.');
+            } catch (error) {
+                this.log.warn(`Passive LAN listener unavailable: ${error.message}`);
+                this.lanReceiver = null;
+            }
+        }
         if (!this.config.email || !this.config.password) {
             this.log.warn('Configure your Coffee Link account in the adapter settings.');
             return;
@@ -111,6 +142,8 @@ class CoffeeLink extends utils.Adapter {
         try {
             this.stopping = true;
             if (this.pollTimer) clearInterval(this.pollTimer);
+            if (this.lanReceiver) await this.lanReceiver.stop();
+            await this.setStateAsync('info.lanListener', { val: false, ack: true });
             await this.setStateAsync('info.connection', { val: false, ack: true });
         } catch {
             // ioBroker shutdown must still complete.

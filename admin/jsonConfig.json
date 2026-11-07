@@ -9,16 +9,62 @@
       "sm": 12
     },
     "email": {
-      "type": "text", "label": "Coffee Link email", "newLine": true, "sm": 12,
+      "type": "text",
+      "label": "Coffee Link email",
+      "newLine": true,
+      "sm": 12,
       "xs": 12
     },
     "password": {
-      "type": "password", "label": "Coffee Link password", "newLine": true,
-      "sm": 12, "xs": 12
+      "type": "password",
+      "label": "Coffee Link password",
+      "newLine": true,
+      "sm": 12,
+      "xs": 12
     },
     "pollInterval": {
-      "type": "number", "label": "Polling interval (minutes)", "min": 5, "max": 1440,
-      "step": 1, "newLine": true, "sm": 6, "xs": 12
+      "type": "number",
+      "label": "Polling interval (minutes)",
+      "min": 5,
+      "max": 1440,
+      "step": 1,
+      "newLine": true,
+      "sm": 6,
+      "xs": 12
+    },
+    "lanNote": {
+      "type": "staticText",
+      "text": "EXPERIMENTAL: Passive local receiver only. No machine registration, status refresh or LAN control. Leave disabled until you are ready to test.",
+      "newLine": true,
+      "sm": 12
+    },
+    "lanReceiverEnabled": {
+      "type": "checkbox",
+      "label": "Enable passive LAN receiver (experimental)",
+      "newLine": true,
+      "sm": 12
+    },
+    "lanListenAddress": {
+      "type": "text",
+      "label": "LAN bind IP (use 127.0.0.1 for local-only test)",
+      "newLine": true,
+      "sm": 6,
+      "xs": 12
+    },
+    "lanListenPort": {
+      "type": "number",
+      "label": "LAN listener port",
+      "min": 1024,
+      "max": 65535,
+      "newLine": false,
+      "sm": 6,
+      "xs": 12
+    },
+    "lanMachineIp": {
+      "type": "text",
+      "label": "Expected machine LAN IP (required for callback logging)",
+      "newLine": true,
+      "sm": 12
     }
   }
 }

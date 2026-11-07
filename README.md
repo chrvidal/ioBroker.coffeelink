@@ -8,7 +8,7 @@ project, not a fork of or dependency on any other ioBroker De'Longhi adapter.
 
 ## Status
 
-**Early development version 0.0.2: NOT released on npm. Do not install in your
+**Early development version 0.0.3: NOT released on npm. Do not install in your
 production ioBroker system.**
 
 Cloud read access was verified manually with a **PrimaDonna Soul ECAM612.55**:
@@ -37,6 +37,28 @@ Do not assume that `info.connection = true` means the counters are up to date.
 cloud **changed those two values**, in UTC; they do not measure last polling.
 If these dates are recent and counts disagree, counting rules may differ.
 Avoid guessed offsets until confirmed by controlled real-machine measurements.
+
+## Experimental passive LAN receiver (v0.0.3)
+
+A separate, **disabled-by-default** listener is available for verifying that
+ioBroker can bind its LAN callback port. It is not yet a functional LAN
+connection: **no local registration is attempted**. The machine will not send
+callbacks to ioBroker until a future explicit registration step.
+
+- `lanReceiverEnabled`: false by default.
+- `lanListenAddress`: `127.0.0.1` (local-only test) by default; set a LAN IP
+  only after explicitly deciding to test the network callback receiver.
+- `lanListenPort`: 10275 (configurable).
+- `lanMachineIp`: optional expected IPv4 address for future callback diagnostics.
+- `info.lanListener` shows whether the port was actually opened.
+- `info.lanLastContact` is a timestamp only, not an authenticated machine status.
+- All machine callbacks are refused (HTTP 503) until a separately tested
+  authenticated encrypted LAN session is implemented.
+- No HTTP requests are sent **to the machine** in passive mode. Cloud reads
+  remain unchanged.
+
+This prevents taking over the registration held by the official Coffee Link app.
+Do not mistake a listening port for a working LAN integration.
 
 ## Planned
 

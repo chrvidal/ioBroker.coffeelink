@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link"
@@ -36,6 +36,10 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
+      "0.0.3": {
+        "en": "Experimental passive LAN HTTP receiver; no device registration or writes",
+        "de": "Experimenteller passiver LAN-HTTP-Empfaenger; keine Geraeteregistrierung oder Schreibzugriffe"
+      },
       "0.0.2": {
         "en": "Add read-only last-cloud-change timestamps for coffee and milk totals",
         "de": "Zeitpunkte der letzten Cloud-Änderung für Kaffee- und Milchzähler anzeigen"
@@ -49,7 +53,11 @@
   "native": {
     "email": "",
     "password": "",
-    "pollInterval": 15
+    "pollInterval": 15,
+    "lanReceiverEnabled": false,
+    "lanListenAddress": "127.0.0.1",
+    "lanListenPort": 10275,
+    "lanMachineIp": ""
   },
   "encryptedNative": [
     "password"
