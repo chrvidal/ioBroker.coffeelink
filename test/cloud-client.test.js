@@ -52,11 +52,11 @@ test('LAN access fetch is read-only and uses alternative local_key endpoint', as
         if(url.endsWith('accounts.getJWT')) return ok({errorCode:0,id_token:'jwt'});
         if(url.endsWith('token_sign_in')) return ok({access_token:'token',expires_in:3600});
         if(url.endsWith('/dsns/TEST123.json')) return ok({device:{lan_enabled:true}});
-        if(url.endsWith('/devices/TEST123/connection_config.json')) return ok({local_key:'testing-secret'});
+        if(url.endsWith('/devices/TEST123/connection_config.json')) return ok({local_key:'testing-secret',local_key_id:46964});
         throw Error('unexpected URL');
     }});
     const access=await client.readLanAccess('TEST123');
-    assert.deepEqual(access,{enabled:true,key:'testing-secret'});
+    assert.deepEqual(access,{enabled:true,key:'testing-secret',keyId:46964});
     assert.equal(calls.filter(x=>x.url.includes('ads-eu')).every(x=>x.options.method==='GET'),true);
     await assert.rejects(client.readLanAccess('../bad'), CoffeeCloudError);
 });

@@ -8,7 +8,7 @@ project, not a fork of or dependency on any other ioBroker De'Longhi adapter.
 
 ## Status
 
-**Early development version 0.0.13: NOT released on npm. Do not install in your
+**Early development version 0.0.14: NOT released on npm. Do not install in your
 production ioBroker system.**
 
 Cloud read access was verified manually with a **PrimaDonna Soul ECAM612.55**:
@@ -257,3 +257,6 @@ handed to socket, NOT machine acceptance), `lastCommandKind` and
 `lastPollResponseBytes`. No key, raw ciphertext or account information
 is logged. LAN mode is experimental, read-only, opt-in; a registration
 can affect the official Coffee Link app. Real-device verification pending.
+## LAN key-ID diagnostics and retry (v0.0.14)
+
+LAN registration now retries on the next normal cloud refresh after a transient network error. The active LAN health endpoint reports numeric `cloudKeyId`, `machineKeyId`, and `keyIdsMatch` to detect a stale or wrong LAN key **without exposing key material**. Key-exchange framing matches the hardware-tested aioecam reference (HTTP 202, 13-digit millisecond `time_2`, untouched `random_1`) while keeping explicit Content-Length. Registration sends `notify: 1`. This opt-in LAN feature remains experimental; real-device datapoint reception with ECAM612 has NOT been confirmed. Registering locally may interrupt the official Coffee Link application.

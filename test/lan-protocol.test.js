@@ -35,7 +35,7 @@ test('rejects malformed encrypted payload and invalid LAN key',()=>{
     assert.throws(()=>new CoffeeLanSession({host:'127.0.0.1',port:10275,machineIp:'192.168.12.39'}));
 });
 
-test('ECAM612 uses tested POST+DSN+notify:0 exactly once',async()=>{
+test('ECAM612 uses POST+DSN+notify:1 exactly once on success',async()=>{
     const calls=[];
     const transport=new CoffeeLanSession({
         host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
@@ -49,7 +49,7 @@ test('ECAM612 uses tested POST+DSN+notify:0 exactly once',async()=>{
     assert.equal(calls[0].machineIp,'192.168.12.39');
     assert.equal(calls[0].dsn,'testdsn');
     assert.equal(calls[0].timeoutMs,5000);
-    assert.deepEqual(calls[0].body,{local_reg:{ip:'192.168.12.33',notify:0,port:10275,uri:'/local_lan'}});
+    assert.deepEqual(calls[0].body,{local_reg:{ip:'192.168.12.33',notify:1,port:10275,uri:'/local_lan'}});
 });
 
 
@@ -63,6 +63,7 @@ test('failed registration reports safe HTTP status without leaking response body
     transport.configure({dsn:'testdsn',key:'secret-key-not-for-logs'});
     transport.server={listening:true};
     await transport.registerOnce();
+    assert.equal(transport.registrationAttempted,false);
     assert.deepEqual(statuses,['register-http-404']);
     assert.equal(transport.registered,false);
 });
@@ -77,6 +78,7 @@ test('failed registration reports network failure category without secrets',asyn
     transport.configure({dsn:'testdsn',key:'secret-key-not-for-logs'});
     transport.server={listening:true};
     await transport.registerOnce();
+    assert.equal(transport.registrationAttempted,false);
     assert.deepEqual(statuses,['register-connection-refused']);
 });
 

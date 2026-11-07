@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.0.13",
+    "version": "0.0.14",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link"

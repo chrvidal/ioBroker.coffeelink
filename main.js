@@ -119,13 +119,14 @@ class CoffeeLink extends utils.Adapter {
                 });
                 await this.state(`${root}.online`, 'Machine reachable via cloud', 'boolean', 'indicator.reachable', isOnline);
                 if (this.lanReceiver instanceof CoffeeLanSession && !this.lanReceiver.registrationAttempted
-                    && isOnline && this.config.lanMachineIp) {
+                    && isOnline && this.config.lanMachineIp
+                    && (!this.activeLanDevice || this.activeLanDevice === root)) {
                     try {
                         const access = await this.client.readLanAccess(device.dsn);
                         if (!access.enabled || !access.key) {
                             await this.setStateAsync('info.lanStatus', { val: 'no-lan-key', ack: true });
                         } else {
-                            this.lanReceiver.configure({ dsn: device.dsn, key: access.key });
+                            this.lanReceiver.configure({ dsn: device.dsn, key: access.key, keyId: access.keyId });
                             this.activeLanDevice = root;
                             // Explicit active-mode checkbox opts in to ONE device registration attempt.
                             // This changes the machine's callback destination; the app may be affected.

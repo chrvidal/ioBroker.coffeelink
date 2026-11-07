@@ -52,21 +52,21 @@ test('accepts query-parameter callbacks, decodes payload, and exposes safe count
         onProperties: values => packets.push(values),
     });
     try {
-        session.configure({ dsn: 'testmachine123', key });
+        session.configure({ dsn: 'testmachine123', key, keyId: 123456 });
         await session.start();
         await session.registerOnce();
         const exchange = await post(host, port, '/local_lan/key_exchange.json', {
             key_exchange: { random_1: 'device-seed', time_1: '355921561731160', ver: 1, proto: 1, key_id: 123456 },
         });
-        assert.equal(exchange.status, 200);
-        // Real Ayla ESP32 trace: HTTP/1.1 200 with a fixed Content-Length;
+        assert.equal(exchange.status, 202);
+        // HTTP/1.1 handshake uses a fixed Content-Length;
         // Node's implicit chunked responses can stall low-level device clients.
         assert.equal(exchange.headers['transfer-encoding'], undefined);
         assert.equal(Number(exchange.headers['content-length']),
             Buffer.byteLength(JSON.stringify(exchange.body)));
         assert.equal(exchange.headers['content-type'], 'application/json');
         assert.equal(Number.isSafeInteger(exchange.body.time_2), true);
-        assert.equal(String(exchange.body.time_2).length, 16);
+        assert.equal(String(exchange.body.time_2).length, 13);
         const keys = derive(key, 'device-seed', exchange.body.random_2,
             '355921561731160', String(exchange.body.time_2));
         const commands = await get(host, port, '/local_lan/commands.json?test=1');
@@ -98,7 +98,10 @@ test('accepts query-parameter callbacks, decodes payload, and exposes safe count
         assert.equal(diag.body.commandRepliesSent, 1);
         assert.equal(diag.body.lastCommandKind, 'read-properties');
         assert.equal(diag.body.lastPollResponseBytes, Buffer.byteLength(JSON.stringify(commands.body)));
-        assert.deepEqual(diag.body.lastHandshakeFeatures, { time1Digits: 15, version: 1, protocol: 1, hasKeyId: true, responseStatus: 200, time2Digits: 16 });
+        assert.deepEqual(diag.body.lastHandshakeFeatures, { time1Digits: 15, version: 1, protocol: 1, hasKeyId: true, responseStatus: 202, time2Digits: 13 });
+        assert.equal(diag.body.cloudKeyId, 123456);
+        assert.equal(diag.body.machineKeyId, 123456);
+        assert.equal(diag.body.keyIdsMatch, true);
         assert.equal(diag.body.pollCount, 1);
         assert.equal(diag.body.pushCount, 1);
         assert.equal(diag.body.decodedCount, 1);
@@ -120,5 +123,26 @@ test('invalid encrypted push produces 200 but safe diagnostic, not a secret leak
         const diag = await get(host, port, '/health', host);
         assert.equal(diag.body.pushCount, 1);
         assert.equal(diag.body.lastError, 'push-before-handshake-or-missing-enc');
+    } finally { await session.stop(); }
+});
+
+// Key ID is non-secret metadata, never the key itself. Mismatch is observable.
+test('diagnoses a cloud/device key ID mismatch safely', async () => {
+    const host = '127.0.0.2';
+    const port = 36000 + process.pid % 20000;
+    const session = new CoffeeLanSession({ host, port, machineIp: '127.0.0.1' });
+    try {
+        session.configure({ dsn: 'testmachine123', key: 'PRIVATE-KEY-NOT-FOR-LOGS', keyId: 46965 });
+        await session.start();
+        const exchange = await post(host, port, '/local_lan/key_exchange.json', {
+            key_exchange: { random_1: 'random-1==', time_1: '355921561731160', key_id: 46964 },
+        });
+        assert.equal(exchange.status, 202);
+        const health = await get(host, port, '/health', host);
+        assert.equal(health.body.cloudKeyId, 46965);
+        assert.equal(health.body.machineKeyId, 46964);
+        assert.equal(health.body.keyIdsMatch, false);
+        assert.equal(health.body.lastError, 'lan-key-id-mismatch');
+        assert.equal(JSON.stringify(health.body).includes('PRIVATE-KEY-NOT-FOR-LOGS'), false);
     } finally { await session.stop(); }
 });
