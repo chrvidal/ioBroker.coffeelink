@@ -1,7 +1,7 @@
 {
   "name": "iobroker.coffeelink",
-  "version": "0.0.14",
-  "description": "Read-only cloud data and opt-in experimental local LAN reads for DeLonghi Coffee Link",
+  "version": "0.0.15",
+  "description": "Cloud data, LAN statistics and optional ECAM61x LAN controls for DeLonghi Coffee Link",
   "author": "chrvidal",
   "license": "MIT",
   "repository": {
@@ -22,7 +22,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22.19.0"
   },
   "keywords": [
     "ioBroker",
@@ -33,10 +33,15 @@
     "smart-home"
   ],
   "scripts": {
-    "test": "node --test",
-    "check": "node --check main.js && node --check lib/cloud-client.js && node --check lib/measurements.js && node --check lib/lan-receiver.js && node --check lib/lan-protocol.js && node --check lib/lan-session.js && npm test"
+    "test": "node --test \"test/*.test.js\"",
+    "test:package": "mocha test/package.cjs",
+    "test:integration": "mocha test/integration.cjs",
+    "check": "node --check main.js && node --check lib/cloud-client.js && node --check lib/measurements.js && node --check lib/lan-receiver.js && node --check lib/lan-protocol.js && node --check lib/lan-session.js && node --check lib/ecam-soul.js && npm test"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.4.3"
+  },
+  "devDependencies": {
+    "@iobroker/testing": "^6.3.0"
   }
 }

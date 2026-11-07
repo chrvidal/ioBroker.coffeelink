@@ -4,7 +4,7 @@
   "items": {
     "introduction": {
       "type": "staticText",
-      "text": "Unofficial read-only Cloud connection. No drinks or machine settings can be changed.",
+      "text": "Unofficial Coffee Link adapter. Cloud access is read-only. ECAM61x controls are optional and use LAN.",
       "newLine": true,
       "sm": 12
     },
@@ -75,6 +75,12 @@
     "lanActiveEnabled": {
       "type": "checkbox",
       "label": "EXPERIMENTAL: Register this adapter as LAN client (may affect Coffee Link app)",
+      "newLine": true,
+      "sm": 12
+    },
+    "lanControlEnabled": {
+      "type": "checkbox",
+      "label": "Enable ECAM61x LAN controls (drinks, standby and settings)",
       "newLine": true,
       "sm": 12
     }

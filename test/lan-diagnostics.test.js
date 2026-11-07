@@ -41,14 +41,18 @@ test('recognizes bulk, single-name and property-wrapper LAN datapoints', () => {
     assert.equal(extractProperties({ data: { name: '../../bad', value: 9 } }).size, 0);
 });
 
-test('accepts query-parameter callbacks, decodes payload, and exposes safe counters', async () => {
+test('reads named counters through authenticated callbacks and requests the next poll', async () => {
     const key = 'test-local-secret';
     const host = '127.0.0.2';
     const port = 30000 + process.pid % 20000;
     const packets = [];
+    const notifications = [];
     const session = new CoffeeLanSession({
         host, port, machineIp: '127.0.0.1',
-        registrationRequestFn: async () => ({ status: 202, ok: true }),
+        registrationRequestFn: async (request) => {
+            if (request.method === 'PUT') notifications.push(request.body.local_reg.notify);
+            return { status: 202, ok: true };
+        },
         onProperties: values => packets.push(values),
     });
     try {
@@ -56,9 +60,9 @@ test('accepts query-parameter callbacks, decodes payload, and exposes safe count
         await session.start();
         await session.registerOnce();
         const exchange = await post(host, port, '/local_lan/key_exchange.json', {
-            key_exchange: { random_1: 'device-seed', time_1: '355921561731160', ver: 1, proto: 1, key_id: 123456 },
+            key_exchange: { random_1: 'device-seed==', time_1: '355921561731160', ver: 1, proto: 1, key_id: 123456 },
         });
-        assert.equal(exchange.status, 202);
+        assert.equal(exchange.status, 200);
         // HTTP/1.1 handshake uses a fixed Content-Length;
         // Node's implicit chunked responses can stall low-level device clients.
         assert.equal(exchange.headers['transfer-encoding'], undefined);
@@ -66,7 +70,7 @@ test('accepts query-parameter callbacks, decodes payload, and exposes safe count
             Buffer.byteLength(JSON.stringify(exchange.body)));
         assert.equal(exchange.headers['content-type'], 'application/json');
         assert.equal(Number.isSafeInteger(exchange.body.time_2), true);
-        assert.equal(String(exchange.body.time_2).length, 13);
+        assert.equal(String(exchange.body.time_2).length, 16);
         const keys = derive(key, 'device-seed', exchange.body.random_2,
             '355921561731160', String(exchange.body.time_2));
         const commands = await get(host, port, '/local_lan/commands.json?test=1');
@@ -78,36 +82,76 @@ test('accepts query-parameter callbacks, decodes payload, and exposes safe count
         assert.deepEqual(Object.keys(commands.body), ['enc', 'sign']);
         assert.ok(commands.body.enc);
         assert.equal(typeof commands.body.sign, 'string');
-        const commandPayload = decode(commands.body.enc, keys.toMachineKey, keys.toMachineIv);
+        const commandPayload = decode(commands.body.enc, keys.toMachineKey, keys.toMachineIv,
+            keys.toMachineSign, commands.body.sign);
         const command = JSON.parse(commandPayload.plaintext);
         assert.equal(command.seq_no, '0');
         assert.equal(command.data.cmds[0].cmd.method, 'GET');
-        assert.equal(command.data.cmds[0].cmd.resource, "property.json?name=''");
+        assert.equal(command.data.cmds[0].cmd.resource, 'property.json?name=d700_tot_bev_b');
         assert.equal(command.data.cmds[0].cmd.uri, '/local_lan/property/datapoint.json');
-        const push = JSON.stringify({ seq_no: 1, data: { name: 'd700_tot_bev_b', value: 10072 } });
-        const frame = encode(push, keys.fromMachineKey, keys.fromMachineIv, keys.toMachineSign);
-        const response = await post(host, port,
-            '/local_lan/property/datapoint.json?cmd_id=1&status=200', { enc: frame.enc });
+        let sequence = 0;
+        const sendPush = (path, data, invalid = false) => {
+            const push = JSON.stringify({ seq_no: String(sequence++), data });
+            const frame = encode(push, keys.fromMachineKey, keys.fromMachineIv, keys.fromMachineSign);
+            keys.fromMachineIv = frame.iv;
+            return post(host, port, path, { enc: frame.enc, sign: invalid ? Buffer.alloc(32).toString('base64') : frame.sign });
+        };
+        const callbackPath = '/local_lan/property/datapoint.json?cmd_id=1&status=200';
+        await sendPush(callbackPath, { name: 'd700_tot_bev_b', value: 999 }, true);
+        assert.equal(packets.length, 0);
+        assert.deepEqual(notifications, []);
+        const rejected = await get(host, port, '/health', host);
+        assert.equal(rejected.body.sessionVerified, false);
+        assert.equal(rejected.body.lastError, 'invalid-signature');
+
+        const response = await sendPush(callbackPath, { name: 'd700_tot_bev_b', value: 10072 });
         assert.equal(response.status, 200);
         assert.equal(packets.length, 1);
         assert.equal(packets[0].get('d700_tot_bev_b').value, 10072);
+        assert.deepEqual(notifications, [1]);
+
+        const second = await get(host, port, '/local_lan/commands.json');
+        const secondFrame = decode(second.body.enc, keys.toMachineKey, commandPayload.iv,
+            keys.toMachineSign, second.body.sign);
+        const secondCommand = JSON.parse(secondFrame.plaintext);
+        assert.equal(secondCommand.seq_no, '1');
+        assert.equal(secondCommand.data.cmds[0].cmd.cmd_id, 2);
+        assert.equal(secondCommand.data.cmds[0].cmd.resource, 'property.json?name=d701_tot_bev_bw');
+        const ack = await sendPush('/local_lan/property/datapoint/ack.json?cmd_id=2&status=200',
+            { name: 'd701_tot_bev_bw', value: '972' });
+        assert.equal(ack.status, 200);
+        assert.equal(packets[1].get('d701_tot_bev_bw').value, '972');
         const diag = await get(host, port, '/health', host);
         assert.equal(diag.body.exchangeCount, 1);
-        assert.equal(diag.body.machineRequestCount, 3);
+        assert.equal(diag.body.machineRequestCount, 6);
         assert.equal(diag.body.keyExchangeRepliesSent, 1);
-        assert.equal(diag.body.commandRepliesSent, 1);
+        assert.equal(diag.body.commandRepliesSent, 2);
         assert.equal(diag.body.lastCommandKind, 'read-properties');
-        assert.equal(diag.body.lastPollResponseBytes, Buffer.byteLength(JSON.stringify(commands.body)));
-        assert.deepEqual(diag.body.lastHandshakeFeatures, { time1Digits: 15, version: 1, protocol: 1, hasKeyId: true, responseStatus: 202, time2Digits: 13 });
+        assert.equal(diag.body.lastPollResponseBytes, Buffer.byteLength(JSON.stringify(second.body)));
+        assert.deepEqual(diag.body.lastHandshakeFeatures, { time1Digits: 15, version: 1, protocol: 1, hasKeyId: true, responseStatus: 200, time2Digits: 16 });
         assert.equal(diag.body.cloudKeyId, 123456);
         assert.equal(diag.body.machineKeyId, 123456);
         assert.equal(diag.body.keyIdsMatch, true);
-        assert.equal(diag.body.pollCount, 1);
-        assert.equal(diag.body.pushCount, 1);
-        assert.equal(diag.body.decodedCount, 1);
-        assert.equal(diag.body.propertiesCount, 1);
+        assert.equal(diag.body.pollCount, 2);
+        assert.equal(diag.body.pushCount, 3);
+        assert.equal(diag.body.decodedCount, 2);
+        assert.equal(diag.body.rejectedSignatureCount, 1);
+        assert.equal(diag.body.propertiesCount, 2);
+        assert.equal(diag.body.counterCount, 2);
+        assert.equal(diag.body.sessionVerified, true);
         assert.ok(diag.body.lastReceivedAt);
         assert.equal(JSON.stringify(diag.body).includes(key), false);
+
+        const operation = session.exchangeProperty('data_request', 'synthetic-frame\n');
+        const third = await get(host, port, '/local_lan/commands.json');
+        const thirdFrame = decode(third.body.enc, keys.toMachineKey, secondFrame.iv, keys.toMachineSign, third.body.sign);
+        assert.deepEqual(JSON.parse(thirdFrame.plaintext).data, { properties: [{ property: {
+            name: 'data_request', value: 'synthetic-frame\n', dsn: 'testmachine123', base_type: 'string',
+        } }] });
+        assert.equal(await operation, 'sent');
+        const fourth = await get(host, port, '/local_lan/commands.json');
+        const fourthFrame = decode(fourth.body.enc, keys.toMachineKey, thirdFrame.iv, keys.toMachineSign, fourth.body.sign);
+        assert.equal(JSON.parse(fourthFrame.plaintext).data.cmds[0].cmd.method, 'GET');
     } finally { await session.stop(); }
 });
 
@@ -137,11 +181,12 @@ test('diagnoses a cloud/device key ID mismatch safely', async () => {
         const exchange = await post(host, port, '/local_lan/key_exchange.json', {
             key_exchange: { random_1: 'random-1==', time_1: '355921561731160', key_id: 46964 },
         });
-        assert.equal(exchange.status, 202);
+        assert.equal(exchange.status, 400);
         const health = await get(host, port, '/health', host);
         assert.equal(health.body.cloudKeyId, 46965);
         assert.equal(health.body.machineKeyId, 46964);
         assert.equal(health.body.keyIdsMatch, false);
+        assert.equal(health.body.connected, false);
         assert.equal(health.body.lastError, 'lan-key-id-mismatch');
         assert.equal(JSON.stringify(health.body).includes('PRIVATE-KEY-NOT-FOR-LOGS'), false);
     } finally { await session.stop(); }

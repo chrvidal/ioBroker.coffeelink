@@ -1,5 +1,6 @@
 {
-  "Unofficial read-only Cloud connection. No drinks or machine settings can be changed.": "Inoffizielle, nur lesende Cloud-Verbindung. Keine Getränkezubereitung und keine Änderung von Maschineneinstellungen.",
+  "Unofficial Coffee Link adapter. Cloud access is read-only. ECAM61x controls are optional and use LAN.": "Inoffizieller Coffee-Link-Adapter. Der Cloud-Zugriff ist lesend. Die ECAM61x-Steuerung ist optional und läuft über LAN.",
+  "Enable ECAM61x LAN controls (drinks, standby and settings)": "ECAM61x-LAN-Steuerung aktivieren (Getränke, Standby und Einstellungen)",
   "Coffee Link email": "Coffee-Link-E-Mail",
   "Coffee Link password": "Coffee-Link-Passwort",
   "Polling interval (minutes)": "Abfrageintervall (Minuten)"

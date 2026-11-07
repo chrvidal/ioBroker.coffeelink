@@ -1,14 +1,17 @@
 # ioBroker.coffeelink
 
-Independent, **read-only** ioBroker adapter for Wi-Fi machines supported by
-De'Longhi's **Coffee Link** app.
+Independent ioBroker adapter for Wi-Fi machines supported by De'Longhi's
+**Coffee Link** app. Cloud access is read-only. ECAM61x machines can opt in to
+experimental local controls.
+
+[De'Longhi](https://www.delonghi.com/)
 
 **Author/Maintainer:** [chrvidal](https://github.com/chrvidal). This is a new
 project, not a fork of or dependency on any other ioBroker De'Longhi adapter.
 
 ## Status
 
-**Early development version 0.0.14: NOT released on npm. Do not install in your
+**Early development version 0.0.15: NOT released on npm. Do not install in your
 production ioBroker system.**
 
 Cloud read access was verified manually with a **PrimaDonna Soul ECAM612.55**:
@@ -20,20 +23,20 @@ Current implementation:
 - Coffee Link (Gigya) + Ayla EU cloud authentication;
 - list up to five connected coffee machines;
 - read 18 identified beverage/maintenance counters;
-- expose the De'Longhi cloud last-change times for only-coffee and coffee-with-milk totals under `machines.*.diagnostics`;
+- expose the De'Longhi cloud last-change times for only-coffee and coffee-with-milk totals under `machines.*.cloud.diagnostics`;
 - expose machine cloud reachability separately from its last known state;
 - parse `d302_monitor` status packets, including CRC validation;
 - mark old monitor data **stale** rather than claiming the machine is currently ready;
 - poll every 15 minutes by default, configurable 5–1440 minutes;
 - protect configured password using ioBroker encryptedNative and protectedNative;
-- NO brew requests, NO standby/wake commands, NO changes to the device.
+- optional local controls for ECAM61x machines.
 
 ## Compare with statistics on the machine
 
 The ECAM612.55 machine screen can report different totals from Ayla cloud values.
 Do not assume that `info.connection = true` means the counters are up to date.
-`machines.*.diagnostics.blackCoffeeCloudUpdatedAt` and
-`machines.*.diagnostics.milkCoffeeCloudUpdatedAt` show the last time the
+`machines.*.cloud.diagnostics.blackCoffeeCloudUpdatedAt` and
+`machines.*.cloud.diagnostics.milkCoffeeCloudUpdatedAt` show the last time the
 cloud **changed those two values**, in UTC; they do not measure last polling.
 If these dates are recent and counts disagree, counting rules may differ.
 Avoid guessed offsets until confirmed by controlled real-machine measurements.
@@ -71,14 +74,18 @@ Do not mistake a listening port for a working LAN integration.
 
 ## Developer checks
 
-Requires Node.js 20+. From the project directory:
+Requires Node.js 22.19+. From the project directory:
 
 ```sh
-npm test
-node --check main.js
+npm ci
+npm run check
+npm run test:package
+npm run test:integration
 ```
 
-The tests use mock API responses; they never call De'Longhi.
+The unit tests use mock API responses. The integration test installs and
+starts the adapter in a temporary ioBroker controller with its default
+configuration and blank credentials.
 
 ## Privacy and safety
 
@@ -107,8 +114,8 @@ By default the adapter remains cloud-only or passive. The additional **LAN activ
 
 * Requires passive receiver enabled, a specific LAN bind IP (e.g. the ioBroker host IP, never `0.0.0.0`), port 10275 and correct machine IP.
 * Obtains the LAN authentication secret from the user's own authenticated Ayla account; never logs or writes it to ioBroker states.
-* Exchanges local session keys and signs/encrypts commands; only issues `GET property.json` to read properties, **never** makes drinks, power changes or settings changes.
-* Stores any locally received counters under `machines.<id>.lan.counters.*`, separate from cloud counters until checked against the machine display.
+* Exchanges local session keys and signs and encrypts LAN messages. Device controls require the separate ECAM61x opt-in described below.
+* Stores counters from the Soul's direct A2 reads under `machines.<id>.lan.statistics.*`. Other devices can expose named LAN properties under `lan.counters`.
 * Status state `info.lanStatus`: `disabled`, `registered`, `encrypted`, `no-lan-key`, `register-failed`, `connection-failed`.
 * The LAN integration is experimental and not confirmed with a live machine. Cloud mode remains functional independently.
 
@@ -257,6 +264,105 @@ handed to socket, NOT machine acceptance), `lastCommandKind` and
 `lastPollResponseBytes`. No key, raw ciphertext or account information
 is logged. LAN mode is experimental, read-only, opt-in; a registration
 can affect the official Coffee Link app. Real-device verification pending.
-## LAN key-ID diagnostics and retry (v0.0.14)
+## LAN counter reads (local v0.0.14 candidate)
 
-LAN registration now retries on the next normal cloud refresh after a transient network error. The active LAN health endpoint reports numeric `cloudKeyId`, `machineKeyId`, and `keyIdsMatch` to detect a stale or wrong LAN key **without exposing key material**. Key-exchange framing matches the hardware-tested aioecam reference (HTTP 202, 13-digit millisecond `time_2`, untouched `random_1`) while keeping explicit Content-Length. Registration sends `notify: 1`. This opt-in LAN feature remains experimental; real-device datapoint reception with ECAM612 has NOT been confirmed. Registering locally may interrupt the official Coffee Link application.
+Live v0.0.13 diagnostics on the ECAM612.55 recorded three decoded pushes and
+one named property. ioBroker had a LAN contact timestamp and no LAN counter
+states. The candidate preserves the v0.0.13 handshake and fixed Content-Length.
+It requests each known counter by name, following the single-property GET
+format used by [aioecam](https://github.com/Styx85/aioecam/blob/60c980f4584ec4085c185977d74f986ea7f08c41/src/aioecam/lan/messages.py).
+A verified session can request another poll through `PUT /local_reg.json`.
+Registration retries transient network failures after short delays of 3 and
+12 seconds, then at the normal refresh interval. Each start allows up to five
+attempts.
+
+The local `/health` endpoint distinguishes derived keys (`connected`), an
+authenticated callback (`sessionVerified`), decoded packets (`decodedCount`)
+and usable counter values (`counterCount`). A known key ID mismatch aborts
+the exchange. Diagnostics contain counts, key IDs and status codes.
+Run `npm run check` to verify the Python-generated CBC and HMAC vectors and
+simulated HTTP callbacks. For a hardware test, check `/health` after startup
+and again after the configured refresh interval. Look for increases in
+`pushCount`, `decodedCount` and `counterCount`, and check the corresponding
+states under `machines.<id>.lan.counters.*`.
+
+In the first ECAM612.55 live cycle on November 7, 2026, both key IDs matched.
+The machine returned 18 authenticated counter values. The scheduled cycle
+15 minutes later returned all 18 again on the same session, with zero
+signature errors across both cycles. The LAN coffee count was 9,753 and
+the stored cloud count was 9,605. The machine display was unavailable for
+comparison.
+
+## Experimental ECAM61x controls and display statistics
+
+Enable active LAN and **ECAM61x LAN controls** in the instance settings to
+expose `machines.<id>.lan.control`. Set a button to `true` with `ack: false`.
+The buttons provide switch-off, wake from reachable standby, coffee, espresso
+and stop. On the ECAM612.55 the `off` state switches the machine off. Wake
+requires the machine's LAN module to respond. Coffee and espresso use the
+ECAM61x presets and require a fresh ready and idle monitor reply.
+`control.readStatus` checks readiness and reports the result without starting
+a drink. Button values reset to `false` after the adapter receives the request.
+If the machine serves an old monitor despite showing its ready drink menu,
+use `coffeeAtMachine` or `espressoAtMachine` while at the machine with a cup in
+place. These explicit manual buttons accept a cached ready and idle report.
+Use `coffee` and `espresso` for commands that require current readiness.
+
+`autoOff` accepts 0 (15 min), 1 (30 min), 2 (1 h) and 3 (3 h).
+`waterHardness` accepts 0 through 3 for display levels 1 through 4. Successful
+setting changes are acknowledged after a matching readback. `control.readSettings`
+reads the current values. `autoOffResult` and `waterHardnessResult` report
+`pending`, `confirmed` or the verification error. The adapter sends a setting
+write once and reads it back up to three times. If verification fails, the
+input shows the last returned value or an empty value. `control.result`
+reports delivery or failure. `sent` means the poll response was sent to the
+machine, and `confirmed` means a setting was read back.
+
+Cloud status and counters are under `machines.<id>.cloud`. `info.cloud.connected`
+reports the last API sync. The `machines.<id>.lan` branch contains locally read
+values and controls. `info.lan.status` shows the LAN session status and
+`info.lan.lastAuthenticatedAt` records the last authenticated property. Both
+transports can be active at the same time. Upgrades move the previous Cloud
+states under `cloud` and remove the old paths directly under the machine ID.
+
+Cloud beverage control is a separate future feature. Model-specific delivery
+and confirmation need hardware testing before exposing Cloud controls.
+
+The direct A2 statistics are read separately under `lan.statistics`.
+On the ECAM61x these are the single LAN counter source, including drink types.
+The older `lan.counters` branch contained values retained by the WLAN module
+and is removed after direct statistics have been verified for the machine.
+On the tested ECAM612.55, the module returned 10,009 black coffees while A2
+returned 10,077. A2 also returned 9,820 coffees and 127 espressos, and a manual
+repeat after a new key exchange confirmed all seven statistics pages.
+`control.readStatistics` requests them on demand. If the machine keeps the
+reply in its LAN module, the adapter reads `data_response` to retrieve it. The
+ECAM612.55 returned 10,075 black coffees, 2,862.0505 litres, 39 descalings,
+661 container cleans and 35 filters through A2. Separate A2 reads returned
+966 coffees with milk and 6 milk-only beverages, giving `withMilk = 972`,
+which matches the machine display. Both the startup and manual reads gave
+the same values. If an A2 page is unconfirmed, the adapter updates the pages
+it received and reports a partial result. The manual coffee and espresso
+buttons prepared both drinks on the ECAM612.55 on November 7, 2026. The
+next confirmed A2 read showed the black coffee total increase from 10,075 to
+10,076. The switch-off command was verified by the operator. Reading and
+writing back the existing settings was verified with a 3-hour auto-off delay
+and water hardness level 3. The machine acknowledged both and reported the
+same values afterwards. The repeat with the readback retries confirmed both
+settings after one request per setting. Wake and drink cancellation await
+hardware verification.
+See [aioecam's ECAM61x profile](https://github.com/Styx85/aioecam/blob/60c980f4584ec4085c185977d74f986ea7f08c41/src/aioecam/ecam/profiles/ecam61x.json)
+and [A2 statistics](https://github.com/Styx85/aioecam/blob/60c980f4584ec4085c185977d74f986ea7f08c41/src/aioecam/ecam/statistics.py).
+
+## Changelog
+
+### 0.0.15
+
+- Read ECAM61x statistics directly over LAN and remove the older LAN counter branch for this family.
+- Separate Cloud and LAN states, and add optional LAN controls for supported Soul machines.
+- Verify setting writes by readback and retry transient LAN registration failures.
+- Add package validation and an ioBroker installation and startup test. Require Node.js 22.19 or newer.
+
+## License
+
+MIT. Copyright © 2026 chrvidal. [License text](LICENSE)

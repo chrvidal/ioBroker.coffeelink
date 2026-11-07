@@ -4,3 +4,4 @@ coverage/
 *.log
 *.bak
 .DS_Store
+.commitinfo
