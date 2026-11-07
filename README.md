@@ -8,7 +8,7 @@ project, not a fork of or dependency on any other ioBroker De'Longhi adapter.
 
 ## Status
 
-**Early development version 0.0.11: NOT released on npm. Do not install in your
+**Early development version 0.0.12: NOT released on npm. Do not install in your
 production ioBroker system.**
 
 Cloud read access was verified manually with a **PrimaDonna Soul ECAM612.55**:
@@ -230,3 +230,16 @@ specific coffee machine is fully supported. Encryption still uses AES-256,
 registration remains active-mode opt-in, and no brew/settings writes occur.
 Disable and save active LAN before updating an installed adapter; deliberately
 re-enable afterward. Re-registration may affect the official Coffee Link app.
+## LAN response framing fix (v0.0.12)
+
+The real ECAM612.55 reaches the local server, receives an HTTP 200
+handshake reply with 16-digit time_2, but never polls commands or pushes
+datapoints. Comparison with an ESP32 Ayla v1 wire trace revealed that
+its reply uses an explicit Content-Length while the Node.js server sent
+Transfer-Encoding: chunked by default. Embedded HTTP clients can fail
+on chunked JSON responses. All LAN JSON responses now send an explicit
+byte-accurate Content-Length with no chunked transfer encoding.
+
+This fixes a verified HTTP framing difference, but live machine behavior
+remains to be checked. The LAN integration is experimental, read-only,
+and active registration is opt-in and can affect the official mobile app.

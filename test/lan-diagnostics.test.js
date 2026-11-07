@@ -13,7 +13,7 @@ function post(host, port, path, payload) {
         } }, res => {
             let text = '';
             res.on('data', chunk => { text += chunk; });
-            res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(text || '{}') }));
+            res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: JSON.parse(text || '{}') }));
         });
         req.on('error', reject);
         req.end(body);
@@ -24,7 +24,7 @@ function get(host, port, path, localAddress) {
         http.get({ host, port, path, localAddress }, res => {
             let text = '';
             res.on('data', x => { text += x; });
-            res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(text || '{}') }));
+            res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: JSON.parse(text || '{}') }));
         }).on('error', reject);
     });
 }
@@ -59,12 +59,21 @@ test('accepts query-parameter callbacks, decodes payload, and exposes safe count
             key_exchange: { random_1: 'device-seed', time_1: '355921561731160', ver: 1, proto: 1, key_id: 123456 },
         });
         assert.equal(exchange.status, 200);
+        // Real Ayla ESP32 trace: HTTP/1.1 200 with a fixed Content-Length;
+        // Node's implicit chunked responses can stall low-level device clients.
+        assert.equal(exchange.headers['transfer-encoding'], undefined);
+        assert.equal(Number(exchange.headers['content-length']),
+            Buffer.byteLength(JSON.stringify(exchange.body)));
+        assert.equal(exchange.headers['content-type'], 'application/json');
         assert.equal(Number.isSafeInteger(exchange.body.time_2), true);
         assert.equal(String(exchange.body.time_2).length, 16);
         const keys = derive(key, 'device-seed', exchange.body.random_2,
             '355921561731160', String(exchange.body.time_2));
         const commands = await get(host, port, '/local_lan/commands.json?test=1');
         assert.equal(commands.status, 200);
+        assert.equal(commands.headers['transfer-encoding'], undefined);
+        assert.equal(Number(commands.headers['content-length']),
+            Buffer.byteLength(JSON.stringify(commands.body)));
         assert.ok(commands.body.enc);
         const commandPayload = decode(commands.body.enc, keys.toMachineKey, keys.toMachineIv);
         assert.match(commandPayload.plaintext, /property.json/);
