@@ -7,7 +7,8 @@ const http=require('node:http');
 
 test('LAN key derivation returns five keys with correct AES lengths',()=>{
     const k=derive('abcdefghij','device-random','server-random','123456','789012');
-    assert.equal(k.toMachineKey.length,16);
+    assert.equal(k.toMachineKey.length,32);
+    assert.equal(k.fromMachineKey.length,32);
     assert.equal(k.fromMachineIv.length,16);
     assert.equal(k.toMachineSign.length,32);
     assert.notDeepEqual(k.toMachineKey,k.fromMachineKey);
@@ -15,7 +16,7 @@ test('LAN key derivation returns five keys with correct AES lengths',()=>{
 });
 
 test('AES-CBC zero padding round trip including IV rotation',()=>{
-    const key=Buffer.from('0123456789abcdef');
+    const key=Buffer.from('0123456789abcdef0123456789abcdef');
     const iv=Buffer.alloc(16,3);
     const sign=Buffer.alloc(32,9);
     const first=encode('{"seq_no":"0","data":{}}',key,iv,sign);
@@ -29,7 +30,7 @@ test('AES-CBC zero padding round trip including IV rotation',()=>{
 
 test('rejects malformed encrypted payload and invalid LAN key',()=>{
     assert.throws(()=>derive('','x','y','a','b'));
-    assert.throws(()=>decode('?!',Buffer.alloc(16),Buffer.alloc(16)));
+    assert.throws(()=>decode('?!',Buffer.alloc(32),Buffer.alloc(16)));
     assert.throws(()=>new CoffeeLanSession({host:'0.0.0.0',port:10275,machineIp:'192.168.12.39'}));
     assert.throws(()=>new CoffeeLanSession({host:'127.0.0.1',port:10275,machineIp:'192.168.12.39'}));
 });

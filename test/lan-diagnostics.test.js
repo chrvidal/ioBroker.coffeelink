@@ -56,7 +56,7 @@ test('accepts query-parameter callbacks, decodes payload, and exposes safe count
         await session.start();
         await session.registerOnce();
         const exchange = await post(host, port, '/local_lan/key_exchange.json', {
-            key_exchange: { random_1: 'device-seed', time_1: '1666666666666' },
+            key_exchange: { random_1: 'device-seed', time_1: '1666666666666', ver: 1, proto: 1, key_id: 123456 },
         });
         assert.equal(exchange.status, 202);
         const keys = derive(key, 'device-seed', exchange.body.random_2,
@@ -75,6 +75,9 @@ test('accepts query-parameter callbacks, decodes payload, and exposes safe count
         assert.equal(packets[0].get('d700_tot_bev_b').value, 10072);
         const diag = await get(host, port, '/health', host);
         assert.equal(diag.body.exchangeCount, 1);
+        assert.equal(diag.body.machineRequestCount, 3);
+        assert.equal(diag.body.keyExchangeRepliesSent, 1);
+        assert.deepEqual(diag.body.lastHandshakeFeatures, { time1Digits: 13, version: 1, protocol: 1, hasKeyId: true, responseStatus: 202 });
         assert.equal(diag.body.pollCount, 1);
         assert.equal(diag.body.pushCount, 1);
         assert.equal(diag.body.decodedCount, 1);

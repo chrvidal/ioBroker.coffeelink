@@ -8,7 +8,7 @@ project, not a fork of or dependency on any other ioBroker De'Longhi adapter.
 
 ## Status
 
-**Early development version 0.0.9: NOT released on npm. Do not install in your
+**Early development version 0.0.10: NOT released on npm. Do not install in your
 production ioBroker system.**
 
 Cloud read access was verified manually with a **PrimaDonna Soul ECAM612.55**:
@@ -197,3 +197,22 @@ and adapter exchanged session parameters, not that application data decrypted.
   This can affect the official Coffee Link app. Disable active mode if needed.
 - No coffee brewing, power, or settings commands are sent. Actual property
   retrieval is read-only. Local counters remain separate from cloud values.
+## LAN crypto correction (v0.0.10)
+
+Ayla's documented LAN protocol uses AES-256-CBC: the derived encryption keys
+must be **32 bytes**, not the 16-byte keys previously used by this adapter.
+IVs remain 16 bytes. The independent LAN protocol code has been corrected,
+with regression tests using the full derived keys.
+
+The opt-in LAN listener now exposes non-secret handshake fingerprints in
+`GET /health` (time_1 digit count, presence of ver/proto/key_id fields,
+and number of key-exchange replies handed to the socket), plus a count of
+requests from the machine. No raw nonces, local keys, identifiers, callback
+bodies or datapoint values are included.
+
+**Important:** The real device currently exchanged keys twice but never polled
+for commands or pushed a property. The AES correction is necessary but does
+not prove this separate communication failure is fixed. No change to the
+handshake HTTP status or machine registration format is made without evidence.
+Active LAN registration may disrupt the official Coffee Link app; keep it
+explicitly opt-in and disable/save before upgrading an installed instance.
