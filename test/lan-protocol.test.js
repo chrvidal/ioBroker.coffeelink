@@ -33,7 +33,7 @@ test('rejects malformed encrypted payload and invalid LAN key',()=>{
     assert.throws(()=>new CoffeeLanSession({host:'127.0.0.1',port:10275,machineIp:'192.168.12.39'}));
 });
 
-test('active registration sends only explicit local callback setup once',async()=>{
+test('ECAM612 uses tested POST+DSN+notify:0 exactly once',async()=>{
     const calls=[];
     const transport=new CoffeeLanSession({
         host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
@@ -48,7 +48,7 @@ test('active registration sends only explicit local callback setup once',async()
     assert.equal(calls[0].params.method,'POST');
     assert.equal(calls[0].params.headers['content-type'],'application/json');
     assert.equal(calls[0].params.redirect,'error');
-    assert.deepEqual(JSON.parse(calls[0].params.body),{local_reg:{ip:'192.168.12.33',notify:1,port:10275,uri:'/local_lan'}});
+    assert.deepEqual(JSON.parse(calls[0].params.body),{local_reg:{ip:'192.168.12.33',notify:0,port:10275,uri:'/local_lan'}});
 });
 
 

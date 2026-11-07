@@ -8,7 +8,7 @@ project, not a fork of or dependency on any other ioBroker De'Longhi adapter.
 
 ## Status
 
-**Early development version 0.0.6: NOT released on npm. Do not install in your
+**Early development version 0.0.7: NOT released on npm. Do not install in your
 production ioBroker system.**
 
 Cloud read access was verified manually with a **PrimaDonna Soul ECAM612.55**:
@@ -144,3 +144,22 @@ active-LAN checkbox in the installed instance and save before updating. Keep
 passive LAN receiver enabled, bind to the ioBroker LAN IP, and make active
 registration a deliberate test after installation. The registration may affect
 the official Coffee Link app's local connection. Avoid repeated retries.
+
+
+## LAN registration correction (v0.0.7)
+
+The real ECAM612.55 accepted `POST /local_reg.json?dsn=...` with
+`notify: 0` (HTTP 202), but rejected the same call with `notify: 1`
+(HTTP 400). Version 0.0.7 changes the **opt-in active** request to
+`notify: 0`. An independent Ayla capture on another device confirms
+that `notify: 0` can still initiate a device-to-server encrypted key
+exchange; the ECAM612 handshake and fresh counters are **not yet verified**.
+
+This is not a change in brewing or settings. But LAN registration may
+change the active local callback target, disrupting the official app.
+Before installing this release, turn off and save the **active LAN** checkbox
+in the installed instance. After installing, the user must explicitly
+turn it on again to attempt the LAN handshake. Do not automatically retry.
+
+Do not interpret `registered` as `encrypted`, or cloud `online` as fresh data.
+The local counters stay in the experimental `machines.*.lan.counters.*`.
