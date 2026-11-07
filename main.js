@@ -5,6 +5,7 @@ const utils = require('@iobroker/adapter-core');
 const { CoffeeCloudClient } = require('./lib/cloud-client');
 const { getCounters, latestMonitor } = require('./lib/measurements');
 const { PassiveLanReceiver } = require('./lib/lan-receiver');
+const { CoffeeLanSession } = require('./lib/lan-session');
 
 const DEVICE_LIMIT = 5;
 
@@ -14,6 +15,7 @@ class CoffeeLink extends utils.Adapter {
         this.client = null;
         this.pollTimer = null;
         this.lanReceiver = null;
+        this.activeLanDevice = null;
         this.busy = false;
         this.stopping = false;
         this.on('ready', this.onReady.bind(this));
@@ -38,19 +40,36 @@ class CoffeeLink extends utils.Adapter {
             common: { name: 'Last unsupported LAN callback', type: 'string', role: 'text', read: true, write: false, def: '' },
             native: {},
         });
+        await this.setObjectNotExistsAsync('info.lanStatus', {
+            type: 'state', common: { name: 'LAN session status', type: 'string', role: 'text', read: true, write: false, def: 'disabled' }, native: {},
+        });
+        await this.setStateAsync('info.lanStatus', { val: 'disabled', ack: true });
         if (this.config.lanReceiverEnabled === true) {
             try {
-                this.lanReceiver = new PassiveLanReceiver({
+                const activeMode = this.config.lanActiveEnabled === true;
+                const listenerConfig = {
                     host: this.config.lanListenAddress || '127.0.0.1',
                     port: Number(this.config.lanListenPort) || 10275,
                     machineIp: this.config.lanMachineIp || '',
+                    onProperties: (properties, receivedAt) => {
+                        if (!this.stopping && this.activeLanDevice) {
+                            void this.recordLanCounters(this.activeLanDevice, properties, receivedAt)
+                                .catch(() => this.log.warn('LAN counters could not be recorded'));
+                        }
+                    },
+                    onStatus: status => {
+                        if (!this.stopping) void this.setStateAsync('info.lanStatus', { val: status, ack: true });
+                    },
                     onContact: ({ at }) => {
                         if (!this.stopping) void this.setStateAsync('info.lanLastContact', { val: at, ack: true });
                     },
-                });
+                };
+                this.lanReceiver = activeMode ? new CoffeeLanSession(listenerConfig) : new PassiveLanReceiver(listenerConfig);
                 await this.lanReceiver.start();
                 await this.setStateAsync('info.lanListener', { val: true, ack: true });
-                this.log.info('Passive LAN listener ready; registration disabled; no machine commands.');
+                this.log.info(activeMode
+                    ? 'Experimental LAN session ready; machine registration requires explicit opt-in.'
+                    : 'Passive LAN listener ready; registration disabled; no machine commands.');
             } catch (error) {
                 this.log.warn(`Passive LAN listener unavailable: ${error.message}`);
                 this.lanReceiver = null;
@@ -99,6 +118,23 @@ class CoffeeLink extends utils.Adapter {
                     native: {},
                 });
                 await this.state(`${root}.online`, 'Machine reachable via cloud', 'boolean', 'indicator.reachable', isOnline);
+                if (this.lanReceiver instanceof CoffeeLanSession && !this.lanReceiver.registrationAttempted
+                    && isOnline && this.config.lanMachineIp) {
+                    try {
+                        const access = await this.client.readLanAccess(device.dsn);
+                        if (!access.enabled || !access.key) {
+                            await this.setStateAsync('info.lanStatus', { val: 'no-lan-key', ack: true });
+                        } else {
+                            this.lanReceiver.configure({ dsn: device.dsn, key: access.key });
+                            this.activeLanDevice = root;
+                            // Explicit active-mode checkbox opts in to ONE device registration attempt.
+                            // This changes the machine's callback destination; the app may be affected.
+                            await this.lanReceiver.registerOnce();
+                        }
+                    } catch {
+                        await this.setStateAsync('info.lanStatus', { val: 'connection-failed', ack: true });
+                    }
+                }
                 // The API can return stale monitor packets while the cloud says Online.
                 const properties = await this.client.readProperties(device.dsn);
                 const monitor = latestMonitor(properties);
@@ -135,6 +171,20 @@ class CoffeeLink extends utils.Adapter {
             this.log.warn(`Coffee Link sync failed: ${error instanceof Error ? error.message : 'unknown error'}`);
         } finally {
             this.busy = false;
+        }
+    }
+
+    async recordLanCounters(root, properties, receivedAt) {
+        await this.setObjectNotExistsAsync(`${root}.lan`, {
+            type: 'channel', common: { name: 'Experimental local LAN data' }, native: {},
+        });
+        await this.state(`${root}.lan.receivedAt`, 'Last LAN property packet (UTC)', 'string', 'text', receivedAt);
+        await this.setObjectNotExistsAsync(`${root}.lan.counters`, {
+            type: 'channel', common: { name: 'LAN counters (unverified)' }, native: {},
+        });
+        // Keep experimental counters separate until they match the machine display.
+        for (const item of getCounters(properties)) {
+            await this.state(`${root}.lan.counters.${item.id}`, item.name, 'number', 'value', item.value);
         }
     }
 

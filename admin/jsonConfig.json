@@ -65,6 +65,18 @@
       "label": "Expected machine LAN IP (required for callback logging)",
       "newLine": true,
       "sm": 12
+    },
+    "lanActiveWarning": {
+      "type": "staticText",
+      "text": "DANGER / ACHTUNG: Active LAN testing uses PUT /local_reg.json once and may interrupt the official Coffee Link app's LAN session. Experimental read-only device queries only; opt in deliberately.",
+      "newLine": true,
+      "sm": 12
+    },
+    "lanActiveEnabled": {
+      "type": "checkbox",
+      "label": "EXPERIMENTAL: Register this adapter as LAN client (may affect Coffee Link app)",
+      "newLine": true,
+      "sm": 12
     }
   }
 }

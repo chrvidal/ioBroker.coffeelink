@@ -99,3 +99,15 @@ protocol findings. Background information includes:
 - https://github.com/sk7n4k3d/delonghi-ha
 
 No code files or adapter architecture were copied from other ioBroker projects.
+
+
+## Experimental local LAN reader (v0.0.4)
+
+By default the adapter remains cloud-only or passive. The additional **LAN active** checkbox opts in to one `PUT /local_reg.json` to your own machine, which changes where it sends local status updates. **This may disrupt the official Coffee Link app's local connection.** Switching back to passive does not necessarily restore the previous callback destination; restarting or reconnecting the official app may be necessary. Use this mode only when you accept that risk.
+
+* Requires passive receiver enabled, a specific LAN bind IP (e.g. the ioBroker host IP, never `0.0.0.0`), port 10275 and correct machine IP.
+* Obtains the LAN authentication secret from the user's own authenticated Ayla account; never logs or writes it to ioBroker states.
+* Exchanges local session keys and signs/encrypts commands; only issues `GET property.json` to read properties, **never** makes drinks, power changes or settings changes.
+* Stores any locally received counters under `machines.<id>.lan.counters.*`, separate from cloud counters until checked against the machine display.
+* Status state `info.lanStatus`: `disabled`, `registered`, `encrypted`, `no-lan-key`, `register-failed`, `connection-failed`.
+* The LAN integration is experimental and not confirmed with a live machine. Cloud mode remains functional independently.

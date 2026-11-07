@@ -43,3 +43,20 @@ test('HTTP errors do not leak credentials or API responses', async () => {
         return true;
     });
 });
+
+test('LAN access fetch is read-only and uses alternative local_key endpoint', async () => {
+    const calls=[];
+    const client=new CoffeeCloudClient({email:'test@example.org',password:'private-password',fetchFn:async(url,options)=>{
+        calls.push({url,options});
+        if(url.endsWith('accounts.login')) return ok({errorCode:0,sessionInfo:{sessionToken:'s',sessionSecret:'z'}});
+        if(url.endsWith('accounts.getJWT')) return ok({errorCode:0,id_token:'jwt'});
+        if(url.endsWith('token_sign_in')) return ok({access_token:'token',expires_in:3600});
+        if(url.endsWith('/dsns/TEST123.json')) return ok({device:{lan_enabled:true}});
+        if(url.endsWith('/devices/TEST123/connection_config.json')) return ok({local_key:'testing-secret'});
+        throw Error('unexpected URL');
+    }});
+    const access=await client.readLanAccess('TEST123');
+    assert.deepEqual(access,{enabled:true,key:'testing-secret'});
+    assert.equal(calls.filter(x=>x.url.includes('ads-eu')).every(x=>x.options.method==='GET'),true);
+    await assert.rejects(client.readLanAccess('../bad'), CoffeeCloudError);
+});
