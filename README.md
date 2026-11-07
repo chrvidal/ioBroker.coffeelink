@@ -8,7 +8,7 @@ project, not a fork of or dependency on any other ioBroker De'Longhi adapter.
 
 ## Status
 
-**Early development version 0.0.10: NOT released on npm. Do not install in your
+**Early development version 0.0.11: NOT released on npm. Do not install in your
 production ioBroker system.**
 
 Cloud read access was verified manually with a **PrimaDonna Soul ECAM612.55**:
@@ -216,3 +216,17 @@ not prove this separate communication failure is fixed. No change to the
 handshake HTTP status or machine registration format is made without evidence.
 Active LAN registration may disrupt the official Coffee Link app; keep it
 explicitly opt-in and disable/save before upgrading an installed instance.
+## LAN v1 handshake fix (v0.0.11)
+
+Real ECAM612.55 diagnostics: ver:1/proto:1/key_id present, 15-digit time_1,
+registration accepted, repeated key exchanges, but no subsequent command polls.
+The adapter's handshake used HTTP 202 and a 13-digit millisecond time_2.
+An independent Ayla v1 packet trace documents HTTP 200 with a 16-digit
+microsecond time_2, followed by a command poll. This release matches that
+response and includes a regression test for the observed firmware pattern.
+
+This is an evidence-based interoperability correction, NOT proof that this
+specific coffee machine is fully supported. Encryption still uses AES-256,
+registration remains active-mode opt-in, and no brew/settings writes occur.
+Disable and save active LAN before updating an installed adapter; deliberately
+re-enable afterward. Re-registration may affect the official Coffee Link app.
