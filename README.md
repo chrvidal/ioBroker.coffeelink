@@ -8,7 +8,7 @@ project, not a fork of or dependency on any other ioBroker De'Longhi adapter.
 
 ## Status
 
-**Early development version 0.0.5: NOT released on npm. Do not install in your
+**Early development version 0.0.6: NOT released on npm. Do not install in your
 production ioBroker system.**
 
 Cloud read access was verified manually with a **PrimaDonna Soul ECAM612.55**:
@@ -103,7 +103,7 @@ No code files or adapter architecture were copied from other ioBroker projects.
 
 ## Experimental local LAN reader (v0.0.4)
 
-By default the adapter remains cloud-only or passive. The additional **LAN active** checkbox opts in to one `PUT /local_reg.json` to your own machine, which changes where it sends local status updates. **This may disrupt the official Coffee Link app's local connection.** Switching back to passive does not necessarily restore the previous callback destination; restarting or reconnecting the official app may be necessary. Use this mode only when you accept that risk.
+By default the adapter remains cloud-only or passive. The additional **LAN active** checkbox opts in to one `POST /local_reg.json?dsn=...` to your own machine, which changes where it sends local status updates. **This may disrupt the official Coffee Link app's local connection.** Switching back to passive does not necessarily restore the previous callback destination; restarting or reconnecting the official app may be necessary. Use this mode only when you accept that risk.
 
 * Requires passive receiver enabled, a specific LAN bind IP (e.g. the ioBroker host IP, never `0.0.0.0`), port 10275 and correct machine IP.
 * Obtains the LAN authentication secret from the user's own authenticated Ayla account; never logs or writes it to ioBroker states.
@@ -125,3 +125,22 @@ account secrets, or LAN keys are logged or put into states. A `404` from
 This diagnostic does not add any requests or enable active LAN by default.
 The opt-in registration still changes the device's local callback target
 if accepted, which may affect the official Coffee Link app.
+
+
+## Tested registration correction (v0.0.6)
+
+On a real PrimaDonna Soul ECAM612.55 on November 7, 2026, `PUT /local_reg.json`
+returned HTTP 400. An explicit manual `POST /local_reg.json?dsn=<device identifier>`
+with `notify: 0` returned **HTTP 202 Accepted**. v0.0.6 changes only the
+**opt-in** active LAN registration call to POST with the DSN query parameter,
+with `notify: 1` to request actual callbacks. The latter is not yet verified
+on this physical machine; HTTP 202 would confirm acceptance, **not** that the
+encrypted handshake or counter retrieval works. The native state
+`info.lanStatus` distinguishes `registered` from `encrypted`.
+
+**Caution:** Updating or restarting the adapter with the persisted active-LAN
+checkbox enabled can immediately send a new registration. First disable the
+active-LAN checkbox in the installed instance and save before updating. Keep
+passive LAN receiver enabled, bind to the ioBroker LAN IP, and make active
+registration a deliberate test after installation. The registration may affect
+the official Coffee Link app's local connection. Avoid repeated retries.

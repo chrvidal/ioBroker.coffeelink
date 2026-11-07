@@ -44,8 +44,10 @@ test('active registration sends only explicit local callback setup once',async()
     await transport.registerOnce();
     await transport.registerOnce();
     assert.equal(calls.length,1);
-    assert.equal(calls[0].url,'http://192.168.12.39/local_reg.json');
-    assert.equal(calls[0].params.method,'PUT');
+    assert.equal(calls[0].url,'http://192.168.12.39/local_reg.json?dsn=testdsn');
+    assert.equal(calls[0].params.method,'POST');
+    assert.equal(calls[0].params.headers['content-type'],'application/json');
+    assert.equal(calls[0].params.redirect,'error');
     assert.deepEqual(JSON.parse(calls[0].params.body),{local_reg:{ip:'192.168.12.33',notify:1,port:10275,uri:'/local_lan'}});
 });
 
@@ -75,4 +77,29 @@ test('failed registration reports network failure category without secrets',asyn
     transport.server={listening:true};
     await transport.registerOnce();
     assert.deepEqual(statuses,['register-connection-refused']);
+});
+
+
+test('ECAM612 HTTP 202 is recorded as registered, but encrypted session is not presumed',async()=>{
+    const statuses=[];
+    const transport=new CoffeeLanSession({
+        host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
+        fetchFn:async(url,opts)=>({ok:true,status:202}),onStatus:status=>statuses.push(status),
+    });
+    transport.configure({dsn:'AC000W018140808',key:'secret-key'});
+    transport.server={listening:true};
+    await transport.registerOnce();
+    assert.equal(transport.registered,true);
+    assert.deepEqual(statuses,['registered']);
+    assert.equal(transport.keys,null);
+});
+
+test('rejects invalid DSN before sending an active registration',async()=>{
+    let called=false;
+    const transport=new CoffeeLanSession({
+        host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
+        fetchFn:async()=>{called=true;return {ok:true,status:202};},
+    });
+    assert.throws(()=>transport.configure({dsn:'invalid?dsn',key:'secret-key'}));
+    assert.equal(called,false);
 });

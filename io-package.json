@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link"
@@ -36,6 +36,14 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
+      "0.0.6": {
+        "en": "Use tested ECAM612 POST registration with DSN for opt-in LAN reading",
+        "de": "Optionale LAN-Registrierung via POST und Gerätekennung für ECAM612"
+      },
+      "0.0.5": {
+        "en": "Show safe LAN registration failure diagnostics",
+        "de": "Fehlercode der LAN-Registrierung anzeigen"
+      },
       "0.0.4": {
         "en": "Opt-in encrypted LAN reader for ECAM612, with isolated local counters",
         "de": "Optionaler verschluesselter LAN-Lesetest fuer ECAM612 mit separaten lokalen Zaehlern"
