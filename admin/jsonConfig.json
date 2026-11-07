@@ -34,7 +34,7 @@
     },
     "lanNote": {
       "type": "staticText",
-      "text": "EXPERIMENTAL: Passive local receiver only. No machine registration, status refresh or LAN control. Leave disabled until you are ready to test.",
+      "text": "EXPERIMENTAL: Passive local receiver only. No device registration or commands until active mode is explicitly enabled.",
       "newLine": true,
       "sm": 12
     },
@@ -68,7 +68,7 @@
     },
     "lanActiveWarning": {
       "type": "staticText",
-      "text": "DANGER / ACHTUNG: Active LAN testing uses PUT /local_reg.json once and may interrupt the official Coffee Link app's LAN session. Experimental read-only device queries only; opt in deliberately.",
+      "text": "ACHTUNG: Active LAN mode sends POST /local_reg.json?dsn=... with notify:0. This can affect the official Coffee Link app local connection. HTTP 202 means registration accepted, not necessarily encrypted or live counters.",
       "newLine": true,
       "sm": 12
     },

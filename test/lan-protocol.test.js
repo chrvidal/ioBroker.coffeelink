@@ -2,7 +2,8 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {derive,encode,decode}=require('../lib/lan-protocol');
-const {CoffeeLanSession}=require('../lib/lan-session');
+const {CoffeeLanSession,postLocalRegistration}=require('../lib/lan-session');
+const http=require('node:http');
 
 test('LAN key derivation returns five keys with correct AES lengths',()=>{
     const k=derive('abcdefghij','device-random','server-random','123456','789012');
@@ -37,18 +38,17 @@ test('ECAM612 uses tested POST+DSN+notify:0 exactly once',async()=>{
     const calls=[];
     const transport=new CoffeeLanSession({
         host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
-        fetchFn:async(url,params)=>{calls.push({url,params});return {ok:true};},
+        registrationRequestFn:async(params)=>{calls.push(params);return {ok:true,status:202};},
     });
     transport.configure({dsn:'testdsn',key:'dontlogthiskey'});
     transport.server={listening:true};
     await transport.registerOnce();
     await transport.registerOnce();
     assert.equal(calls.length,1);
-    assert.equal(calls[0].url,'http://192.168.12.39/local_reg.json?dsn=testdsn');
-    assert.equal(calls[0].params.method,'POST');
-    assert.equal(calls[0].params.headers['content-type'],'application/json');
-    assert.equal(calls[0].params.redirect,'error');
-    assert.deepEqual(JSON.parse(calls[0].params.body),{local_reg:{ip:'192.168.12.33',notify:0,port:10275,uri:'/local_lan'}});
+    assert.equal(calls[0].machineIp,'192.168.12.39');
+    assert.equal(calls[0].dsn,'testdsn');
+    assert.equal(calls[0].timeoutMs,5000);
+    assert.deepEqual(calls[0].body,{local_reg:{ip:'192.168.12.33',notify:0,port:10275,uri:'/local_lan'}});
 });
 
 
@@ -56,7 +56,7 @@ test('failed registration reports safe HTTP status without leaking response body
     const statuses=[];
     const transport=new CoffeeLanSession({
         host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
-        fetchFn:async()=>({ok:false,status:404,text:async()=> 'SECRET-NEVER-LOG'}),
+        registrationRequestFn:async()=>({ok:false,status:404,text:async()=> 'SECRET-NEVER-LOG'}),
         onStatus:s=>statuses.push(s),
     });
     transport.configure({dsn:'testdsn',key:'secret-key-not-for-logs'});
@@ -70,7 +70,7 @@ test('failed registration reports network failure category without secrets',asyn
     const statuses=[];
     const transport=new CoffeeLanSession({
         host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
-        fetchFn:async()=>{const error=new TypeError('secret');error.cause={code:'ECONNREFUSED'};throw error;},
+        registrationRequestFn:async()=>{const error=new TypeError('secret');error.cause={code:'ECONNREFUSED'};throw error;},
         onStatus:s=>statuses.push(s),
     });
     transport.configure({dsn:'testdsn',key:'secret-key-not-for-logs'});
@@ -84,7 +84,7 @@ test('ECAM612 HTTP 202 is recorded as registered, but encrypted session is not p
     const statuses=[];
     const transport=new CoffeeLanSession({
         host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
-        fetchFn:async(url,opts)=>({ok:true,status:202}),onStatus:status=>statuses.push(status),
+        registrationRequestFn:async()=>({ok:true,status:202}),onStatus:status=>statuses.push(status),
     });
     transport.configure({dsn:'AC000W018140808',key:'secret-key'});
     transport.server={listening:true};
@@ -98,8 +98,63 @@ test('rejects invalid DSN before sending an active registration',async()=>{
     let called=false;
     const transport=new CoffeeLanSession({
         host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
-        fetchFn:async()=>{called=true;return {ok:true,status:202};},
+        registrationRequestFn:async()=>{called=true;return {ok:true,status:202};},
     });
     assert.throws(()=>transport.configure({dsn:'invalid?dsn',key:'secret-key'}));
     assert.equal(called,false);
+});
+
+// Wire-level test on the loopback interface only: no real coffee machine.
+test('registration HTTP transport sends tested HTTP/1.1 headers and JSON body',async()=>{
+    const received=[];
+    const server=http.createServer((req,res)=>{
+        const chunks=[];
+        req.on('data',chunk=>chunks.push(chunk));
+        req.on('end',()=>{
+            received.push({method:req.method,url:req.url,headers:req.headers,body:Buffer.concat(chunks).toString('utf8')});
+            res.writeHead(202,{'Content-Type':'text/plain'});res.end('accepted');
+        });
+    });
+    await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+    try {
+        const registration={local_reg:{ip:'192.168.12.33',notify:0,port:10275,uri:'/local_lan'}};
+        const result=await postLocalRegistration({machineIp:'127.0.0.1',dsn:'testdsn',body:registration,port:server.address().port});
+        assert.deepEqual(result,{status:202,ok:true});
+        assert.equal(received.length,1);
+        assert.equal(received[0].method,'POST');
+        assert.equal(received[0].url,'/local_reg.json?dsn=testdsn');
+        assert.equal(received[0].headers['user-agent'],'curl/8.0.1');
+        assert.equal(received[0].headers.accept,'*/*');
+        assert.equal(received[0].headers['content-type'],'application/json');
+        assert.equal(received[0].headers.connection,'close');
+        assert.equal(Number(received[0].headers['content-length']),Buffer.byteLength(received[0].body));
+        assert.equal(received[0].headers['transfer-encoding'],undefined);
+        assert.deepEqual(JSON.parse(received[0].body),registration);
+    } finally {
+        await new Promise(resolve=>server.close(resolve));
+    }
+});
+
+test('registration HTTP transport does not follow redirects',async()=>{
+    const server=http.createServer((req,res)=>{req.resume();res.writeHead(302,{location:'http://127.0.0.1/other'});res.end();});
+    await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+    try {
+        const result=await postLocalRegistration({machineIp:'127.0.0.1',dsn:'testdsn',body:{local_reg:{}},port:server.address().port});
+        assert.deepEqual(result,{status:302,ok:false});
+    } finally {
+        await new Promise(resolve=>server.close(resolve));
+    }
+});
+
+test('native HTTP socket errors remain safely categorized',async()=>{
+    const statuses=[];
+    const transport=new CoffeeLanSession({
+        host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
+        registrationRequestFn:async()=>{const err=new Error('private diagnostic');err.code='EHOSTUNREACH';throw err;},
+        onStatus:status=>statuses.push(status),
+    });
+    transport.configure({dsn:'testdsn',key:'private_key'});
+    transport.server={listening:true};
+    await transport.registerOnce();
+    assert.deepEqual(statuses,['register-network-unreachable']);
 });

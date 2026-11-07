@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link"
@@ -36,6 +36,10 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
+      "0.0.8": {
+        "en": "Use ECAM612-confirmed Node HTTP/1.1 registration headers instead of fetch",
+        "de": "LAN-Registrierung mit getesteter Node HTTP/1.1-Anfrage statt fetch"
+      },
       "0.0.7": {
         "en": "Use real-device accepted LAN registration with notify:0; keep LAN opt-in",
         "de": "LAN-Registrierung mit auf echter ECAM612 bestätigtem notify:0; LAN bleibt optional"

@@ -1,6 +1,6 @@
 {
   "name": "iobroker.coffeelink",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Read-only cloud data and opt-in experimental local LAN reads for DeLonghi Coffee Link",
   "author": "chrvidal",
   "license": "MIT",

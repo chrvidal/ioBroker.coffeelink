@@ -163,3 +163,19 @@ turn it on again to attempt the LAN handshake. Do not automatically retry.
 
 Do not interpret `registered` as `encrypted`, or cloud `online` as fresh data.
 The local counters stay in the experimental `machines.*.lan.counters.*`.
+
+## LAN registration transport fix (v0.0.8)
+
+On the tested ECAM612.55, `curl` and Node `http.request` with explicit
+HTTP/1.1 headers returned **202 Accepted**, while Node `fetch` returned
+**400 Bad Request** for the same JSON registration payload.
+The opt-in `POST /local_reg.json?dsn=...` registration now uses the
+built-in `node:http` module with the exact working headers and an explicit
+Content-Length (no `fetch`/undici). It only returns a numeric HTTP status,
+does not follow redirects, and does not log response bodies or credentials.
+
+**LAN registration remains experimental and explicitly opt-in.** A 202 confirms
+only acceptance of the registration request; encrypted callbacks and fresh
+local drink counters still require validation on the real machine. Disable
+active mode and save before upgrading a running ioBroker installation to
+avoid accidental registrations during restart.
