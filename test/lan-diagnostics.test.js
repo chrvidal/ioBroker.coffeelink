@@ -8,7 +8,7 @@ const { derive, encode, decode } = require('../lib/lan-protocol');
 function post(host, port, path, payload) {
     return new Promise((resolve, reject) => {
         const body = JSON.stringify(payload);
-        const req = http.request({ host, port, path, method: 'POST', headers: {
+        const req = http.request({ host, port, path, localAddress: '127.0.0.1', method: 'POST', headers: {
             'content-type': 'application/json', 'content-length': Buffer.byteLength(body),
         } }, res => {
             let text = '';
@@ -19,7 +19,7 @@ function post(host, port, path, payload) {
         req.end(body);
     });
 }
-function get(host, port, path, localAddress) {
+function get(host, port, path, localAddress = '127.0.0.1') {
     return new Promise((resolve, reject) => {
         http.get({ host, port, path, localAddress }, res => {
             let text = '';
