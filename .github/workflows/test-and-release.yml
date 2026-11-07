@@ -49,7 +49,8 @@ jobs:
           cache: npm
       - name: Install test dependencies on Windows
         if: runner.os == 'Windows'
-        run: npm.cmd ci
+        timeout-minutes: 4
+        run: npm.cmd ci --ignore-scripts --no-audit --no-fund --fetch-retries=1 --fetch-timeout=30000
       - name: Run unit tests on Windows
         if: runner.os == 'Windows'
         run: npm.cmd run check
