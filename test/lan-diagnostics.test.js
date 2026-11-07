@@ -74,9 +74,16 @@ test('accepts query-parameter callbacks, decodes payload, and exposes safe count
         assert.equal(commands.headers['transfer-encoding'], undefined);
         assert.equal(Number(commands.headers['content-length']),
             Buffer.byteLength(JSON.stringify(commands.body)));
+        // Real ESP32/Ayla v1 command response contains exactly enc + sign.
+        assert.deepEqual(Object.keys(commands.body), ['enc', 'sign']);
         assert.ok(commands.body.enc);
+        assert.equal(typeof commands.body.sign, 'string');
         const commandPayload = decode(commands.body.enc, keys.toMachineKey, keys.toMachineIv);
-        assert.match(commandPayload.plaintext, /property.json/);
+        const command = JSON.parse(commandPayload.plaintext);
+        assert.equal(command.seq_no, '0');
+        assert.equal(command.data.cmds[0].cmd.method, 'GET');
+        assert.equal(command.data.cmds[0].cmd.resource, "property.json?name=''");
+        assert.equal(command.data.cmds[0].cmd.uri, '/local_lan/property/datapoint.json');
         const push = JSON.stringify({ seq_no: 1, data: { name: 'd700_tot_bev_b', value: 10072 } });
         const frame = encode(push, keys.fromMachineKey, keys.fromMachineIv, keys.toMachineSign);
         const response = await post(host, port,
@@ -88,6 +95,9 @@ test('accepts query-parameter callbacks, decodes payload, and exposes safe count
         assert.equal(diag.body.exchangeCount, 1);
         assert.equal(diag.body.machineRequestCount, 3);
         assert.equal(diag.body.keyExchangeRepliesSent, 1);
+        assert.equal(diag.body.commandRepliesSent, 1);
+        assert.equal(diag.body.lastCommandKind, 'read-properties');
+        assert.equal(diag.body.lastPollResponseBytes, Buffer.byteLength(JSON.stringify(commands.body)));
         assert.deepEqual(diag.body.lastHandshakeFeatures, { time1Digits: 15, version: 1, protocol: 1, hasKeyId: true, responseStatus: 200, time2Digits: 16 });
         assert.equal(diag.body.pollCount, 1);
         assert.equal(diag.body.pushCount, 1);

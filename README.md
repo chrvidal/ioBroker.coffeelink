@@ -8,7 +8,7 @@ project, not a fork of or dependency on any other ioBroker De'Longhi adapter.
 
 ## Status
 
-**Early development version 0.0.12: NOT released on npm. Do not install in your
+**Early development version 0.0.13: NOT released on npm. Do not install in your
 production ioBroker system.**
 
 Cloud read access was verified manually with a **PrimaDonna Soul ECAM612.55**:
@@ -243,3 +243,17 @@ byte-accurate Content-Length with no chunked transfer encoding.
 This fixes a verified HTTP framing difference, but live machine behavior
 remains to be checked. The LAN integration is experimental, read-only,
 and active registration is opt-in and can affect the official mobile app.
+## LAN ESP32 command response framing (v0.0.13)
+
+Version 0.0.12 reached a real ESP32/Ayla v1 command poll (`pollCount=1`)
+with the ECAM612.55, but no machine datapoints were returned. An
+independent real Ayla ESP32 packet capture shows the command-poll HTTP
+reply has exactly two JSON fields: `enc` and `sign`. Our reply also
+included an unnecessary top-level `seq`. Version 0.0.13 removes that
+extra field while preserving `seq_no` inside the encrypted request.
+
+Safe health diagnostics now include `commandRepliesSent` (HTTP response
+handed to socket, NOT machine acceptance), `lastCommandKind` and
+`lastPollResponseBytes`. No key, raw ciphertext or account information
+is logged. LAN mode is experimental, read-only, opt-in; a registration
+can affect the official Coffee Link app. Real-device verification pending.
