@@ -1,0 +1,16 @@
+{
+  "name": "iobroker.coffeelink",
+  "version": "0.0.1",
+  "description": "Read-only ioBroker adapter for De'Longhi Coffee Link machines",
+  "author": "chrvidal",
+  "license": "MIT",
+  "repository": {"type": "git", "url": "git+https://github.com/chrvidal/ioBroker.coffeelink.git"},
+  "bugs": {"url": "https://github.com/chrvidal/ioBroker.coffeelink/issues"},
+  "homepage": "https://github.com/chrvidal/ioBroker.coffeelink#readme",
+  "main": "main.js",
+  "files": ["main.js", "lib/", "admin/", "io-package.json", "README.md", "LICENSE"],
+  "engines": {"node": ">=20"},
+  "keywords": ["ioBroker", "coffeelink", "coffee", "DeLonghi", "PrimaDonna", "smart-home"],
+  "scripts": {"test": "node --test", "check": "node --check main.js && node --check lib/cloud-client.js && node --check lib/measurements.js && npm test"},
+  "dependencies": {"@iobroker/adapter-core": "^3.4.3"}
+}

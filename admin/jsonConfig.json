@@ -1,0 +1,24 @@
+{
+  "i18n": true,
+  "type": "panel",
+  "items": {
+    "introduction": {
+      "type": "staticText",
+      "text": "Unofficial read-only Cloud connection. No drinks or machine settings can be changed.",
+      "newLine": true,
+      "sm": 12
+    },
+    "email": {
+      "type": "text", "label": "Coffee Link email", "newLine": true, "sm": 12,
+      "xs": 12
+    },
+    "password": {
+      "type": "password", "label": "Coffee Link password", "newLine": true,
+      "sm": 12, "xs": 12
+    },
+    "pollInterval": {
+      "type": "number", "label": "Polling interval (minutes)", "min": 5, "max": 1440,
+      "step": 1, "newLine": true, "sm": 6, "xs": 12
+    }
+  }
+}
