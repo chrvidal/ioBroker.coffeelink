@@ -8,7 +8,7 @@ project, not a fork of or dependency on any other ioBroker De'Longhi adapter.
 
 ## Status
 
-**Early development version 0.0.7: NOT released on npm. Do not install in your
+**Early development version 0.0.9: NOT released on npm. Do not install in your
 production ioBroker system.**
 
 Cloud read access was verified manually with a **PrimaDonna Soul ECAM612.55**:
@@ -179,3 +179,21 @@ only acceptance of the registration request; encrypted callbacks and fresh
 local drink counters still require validation on the real machine. Disable
 active mode and save before upgrading a running ioBroker installation to
 avoid accidental registrations during restart.
+
+## LAN receiver improvements (v0.0.9)
+
+This is an EXPERIMENTAL, opt-in read-only local integration, not a confirmed source
+of current beverage counters. Local key exchange only proves that the device
+and adapter exchanged session parameters, not that application data decrypted.
+
+- Accepts callback URLs containing `?cmd_id=...&status=...` rather than 404ing.
+- Recognizes bulk property lists and individual `data.name`/`data.value` updates.
+- Responds HTTP 200 to encrypted data packet decoding errors (no payload logs)
+  to avoid triggering device backoff.
+- `GET /health` exposes only safe counters and timestamps: `pollCount`,
+  `pushCount`, `decodedCount`, `propertiesCount`, `lastError`.
+- If the device exchanges keys but never polls commands, an ACTIVE client
+  makes at most ONE additional registration reminder after 25 seconds.
+  This can affect the official Coffee Link app. Disable active mode if needed.
+- No coffee brewing, power, or settings commands are sent. Actual property
+  retrieval is read-only. Local counters remain separate from cloud values.
