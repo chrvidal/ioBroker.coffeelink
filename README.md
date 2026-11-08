@@ -148,6 +148,11 @@ and [aioecam's statistics references](https://github.com/Styx85/aioecam/blob/60c
 
 ## Changelog
 
+### 0.2.3
+
+- Retry undelivered LAN writes for auto-off delay and water hardness.
+- Read the setting back if its acknowledgement is missing or the LAN session changes.
+
 ### 0.2.2
 
 - Move unanswered or incomplete automatic LAN statistics reads to the debug log.

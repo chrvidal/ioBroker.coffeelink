@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link",
@@ -67,6 +67,19 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
+      "0.2.3": {
+        "en": "Retry undelivered LAN setting changes and verify changes after a lost acknowledgement.",
+        "de": "Wiederholt nicht zugestellte LAN-Einstellbefehle und liest den Wert bei fehlender Bestätigung zurück.",
+        "ru": "Повторяет недоставленные изменения настроек по LAN и проверяет значение при отсутствии подтверждения.",
+        "pt": "Repete alterações de configuração LAN não entregues e confirma o valor quando falta a resposta.",
+        "nl": "Herhaalt niet-afgeleverde LAN-instellingen en leest de waarde terug als de bevestiging uitblijft.",
+        "fr": "Renvoie les modifications de réglage non transmises et vérifie la valeur en l’absence de confirmation.",
+        "it": "Ripete le modifiche alle impostazioni LAN non consegnate e verifica il valore se manca la conferma.",
+        "es": "Reintenta los cambios de configuración LAN no entregados y comprueba el valor si falta la confirmación.",
+        "pl": "Ponawia niedostarczone zmiany ustawień przez LAN i odczytuje wartość przy braku potwierdzenia.",
+        "uk": "Повторює недоставлені зміни налаштувань через LAN і зчитує значення, якщо підтвердження відсутнє.",
+        "zh-cn": "重试未送达的局域网设置命令，并在未收到确认时回读设置值。"
+      },
       "0.2.2": {
         "en": "Log unanswered automatic statistics reads at debug level.",
         "de": "Ausbleibende Antworten bei automatischen Statistikabrufen stehen jetzt im Debug-Log.",

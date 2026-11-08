@@ -49,6 +49,7 @@ function simulatedSoul(steps, recipes = new Map()) {
                 assert.ok(value.endsWith('\n'));
                 assert.equal(Buffer.from(value, 'base64').subarray(0, -4).toString('hex'), request);
             }
+            if (reply instanceof Error) throw reply;
             if (!reply && !match) return 'sent';
             if (!reply) throw Error('unconfirmed');
             const result = match(properties(reply, timestamp));
@@ -279,6 +280,30 @@ test('waits for the new setting after a missing write ACK and an old readback wi
     const first = soul.setSetting('autoOff', 1);
     assert.equal(soul.setSetting('autoOff', 1), first);
     assert.equal(await first, 1);
+    assert.equal(steps.length, 0);
+});
+
+test('retries an interrupted setting announcement and a write the machine did not collect', async () => {
+    const steps = [
+        ['device_connected', null, Error('session-ended')],
+        ['device_connected'],
+        ['data_request', '0d0b900f003e0000000191c2', Error('not-delivered')],
+        ['device_connected'],
+        ['data_request', '0d0b900f003e0000000191c2', 'd008900f003e0080a0'],
+        ['data_request', '0d0795f0003e56bc', 'd00b95f0003e00000001f68e'],
+    ];
+    assert.equal(await simulatedSoul(steps).setSetting('autoOff', 1), 1);
+    assert.equal(steps.length, 0);
+});
+
+test('verifies a possibly delivered setting after rekeying without writing it again', async () => {
+    const steps = [
+        ['device_connected'],
+        ['data_request', '0d0b900f003e0000000191c2', Error('session-ended')],
+        ['data_request', '0d0795f0003e56bc', Error('lan-unavailable')],
+        ['data_request', '0d0795f0003e56bc', 'd00b95f0003e00000001f68e'],
+    ];
+    assert.equal(await simulatedSoul(steps).setSetting('autoOff', 1), 1);
     assert.equal(steps.length, 0);
 });
 

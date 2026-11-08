@@ -404,6 +404,9 @@ class CoffeeLink extends utils.Adapter {
             if (profile && outcome.error && outcome.error !== 'cancelled') {
                 this.log.warn(`Drink command ${path}: ${outcome.error}`);
             }
+            if (!button && outcome.error && outcome.error !== 'cancelled') {
+                this.log.debug(`Machine setting ${action}: ${outcome.error}`);
+            }
             if (!button && this.settingCommandIds.get(action) === commandId) {
                 await this.setStateAsync(stateId, { val: outcome.error ? outcome.actual ?? null : outcome.value, ack: true });
                 await this.setStateAsync(`${diagnostics}.${action}Result`, { val: outcome.error || 'confirmed', ack: true });
