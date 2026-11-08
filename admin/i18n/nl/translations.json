@@ -1,10 +1,10 @@
 {
-  "Read machine status and counters from Coffee Link.": "Read machine status and counters from Coffee Link.",
+  "Read machine status and counters from Coffee Link.": "Lees de machinestatus en tellers uit Coffee Link.",
   "Coffee Link email": "Coffee Link email",
   "Coffee Link password": "Coffee Link password",
   "Polling interval (minutes)": "Polling interval (minutes)",
   "Enable LAN": "Enable LAN",
-  "LAN adds local statistics and controls for PrimaDonna Soul machines. Connecting may interrupt the Coffee Link app's local connection.": "LAN adds local statistics and controls for PrimaDonna Soul machines. Connecting may interrupt the Coffee Link app's local connection.",
+  "LAN adds local statistics and controls for PrimaDonna Soul machines. Connecting may interrupt the Coffee Link app's local connection.": "Via LAN kun je statistieken uitlezen en PrimaDonna Soul-machines bedienen. Verbinden kan de lokale verbinding van de Coffee Link-app onderbreken.",
   "Coffee machine IP address": "Coffee machine IP address",
   "ioBroker LAN IPv4 address": "ioBroker LAN IPv4 address",
   "LAN callback port": "LAN callback port"
