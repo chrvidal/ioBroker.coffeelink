@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link",
@@ -67,6 +67,19 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
+      "0.2.0": {
+        "en": "Named profile folders, saved drink recipes and retries for interrupted LAN reads.",
+        "de": "Benannte Profilordner, gespeicherte Getränkerezepte und Wiederholungen bei unterbrochenen LAN-Abrufen.",
+        "ru": "Именованные папки профилей, сохранённые рецепты и повтор прерванных запросов по LAN.",
+        "pt": "Pastas de perfis com nomes, receitas guardadas e repetição de leituras LAN interrompidas.",
+        "nl": "Mappen met profielnamen, opgeslagen recepten en nieuwe pogingen bij onderbroken LAN-uitlezingen.",
+        "fr": "Dossiers par profil, recettes enregistrées et reprise des lectures interrompues sur le réseau local.",
+        "it": "Cartelle per profilo, ricette salvate e nuovi tentativi per le letture LAN interrotte.",
+        "es": "Carpetas por perfil, recetas guardadas y reintentos de lecturas LAN interrumpidas.",
+        "pl": "Foldery nazwanych profili, zapisane przepisy i ponawianie przerwanych odczytów LAN.",
+        "uk": "Іменовані папки профілів, збережені рецепти й повтор перерваних запитів через LAN.",
+        "zh-cn": "按名称显示用户配置，使用已保存的饮品配方，并重试中断的局域网读取。"
+      },
       "0.1.1": {
         "en": "Detect the ioBroker LAN address automatically and remove manual callback settings.",
         "de": "Die ioBroker-LAN-Adresse automatisch ermitteln und die Callback-Einstellungen ausblenden.",

@@ -8,6 +8,8 @@ const { CoffeeLanSession, lanAddressFor } = require('./lib/lan-session');
 const { BUTTONS, PROFILE_DRINK_BUTTONS, SETTINGS, EcamSoul, supportsSoul } = require('./lib/ecam-soul');
 
 const DEVICE_LIMIT = 5;
+const PROFILE_GROUP = 'control.profiles';
+const DRINK_BUTTONS = ['coffee', 'espresso', ...Object.keys(PROFILE_DRINK_BUTTONS)];
 const BUTTON_NAMES = {
     ...BUTTONS,
     ...PROFILE_DRINK_BUTTONS,
@@ -16,14 +18,11 @@ const BUTTON_NAMES = {
 };
 const LAN_GROUPS = {
     control: { name: 'Controls', oldName: 'ECAM61x LAN control', buttons: ['wake', 'off', 'stopDrink'] },
-    'control.drinks': { name: 'Drinks', buttons: ['coffee', 'espresso', ...Object.keys(PROFILE_DRINK_BUTTONS)] },
     diagnostics: { name: 'Diagnostics', oldName: 'LAN diagnostics', buttons: ['readStatus', 'readSettings', 'readStatistics'] },
 };
 const OLD_BUTTON_NAMES = Object.freeze({
     wake: ['wake from standby (lan required)', 'wake machine from standby'],
     off: ['switch machine off'],
-    coffeeAtMachine: ['start coffee (at machine with ready display)'],
-    espressoAtMachine: ['start espresso (at machine with ready display)'],
 });
 const CLOUD_DIAGNOSTICS = [
     ['blackCoffeeCloudUpdatedAt', 'd700_tot_bev_b', 'Only-coffee total'],
@@ -44,6 +43,7 @@ class CoffeeLink extends utils.Adapter {
         this.activeLanDevice = null;
         this.soul = null;
         this.statisticsPending = false;
+        this.drinkPending = false;
         this.controlCommandId = 0;
         this.settingCommandIds = new Map();
         this.migratedDevices = new Set();
@@ -169,12 +169,18 @@ class CoffeeLink extends utils.Adapter {
             const id = `${root}.${branch}`;
             if ((await this.getObjectAsync(id))?.type === 'channel') await this.delObjectAsync(id);
         }
-        for (const path of ['lan.receivedAt', 'lan.automation.coffee', 'lan.automation.espresso']) {
+        const obsoleteLanStates = [
+            'lan.receivedAt', 'lan.automation.coffee', 'lan.automation.espresso', 'lan.diagnostics.readCoffeeRecipe',
+            ...DRINK_BUTTONS.map(id => `lan.control.drinks.${id}`),
+        ];
+        for (const path of obsoleteLanStates) {
             const id = `${root}.${path}`;
             if ((await this.getObjectAsync(id))?.type === 'state') await this.delObjectAsync(id);
         }
-        const automation = `${root}.lan.automation`;
-        if ((await this.getObjectAsync(automation))?.type === 'channel') await this.delObjectAsync(automation);
+        for (const path of ['lan.automation', 'lan.control.drinks']) {
+            const id = `${root}.${path}`;
+            if ((await this.getObjectAsync(id))?.type === 'channel') await this.delObjectAsync(id);
+        }
         this.migratedDevices.add(root);
     }
 
@@ -265,8 +271,12 @@ class CoffeeLink extends utils.Adapter {
     async prepareSoul(root, device, properties) {
         if (this.soul || !supportsSoul(device, properties)) return;
         const soul = new EcamSoul(this.lanReceiver, properties);
+        const machine = await this.getObjectAsync(root);
+        if (machine?.common?.name === 'Coffee Link machine') {
+            await this.extendObjectAsync(root, { common: { name: 'PrimaDonna Soul' } });
+        }
         await this.channel(`${root}.lan`, 'LAN', 'Experimental local LAN data');
-        if (this.lanControlsEnabled) await this.setupControls(root, soul.profileDrinks);
+        if (this.lanControlsEnabled) await this.setupControls(root, soul);
         this.soul = soul;
         const previous = await this.getStateAsync(`${root}.lan.statistics.blackCoffee`);
         if (previous?.ack === true && typeof previous.val === 'number') await this.removeLegacyLanCounters(root);
@@ -284,31 +294,38 @@ class CoffeeLink extends utils.Adapter {
         this.removedLegacyLanCounters = true;
     }
 
-    async setupControls(root, profileDrinks = new Map()) {
+    async setupControls(root, soul) {
         const lan = `${root}.lan`;
         const control = `${lan}.control`;
         const diagnostics = `${lan}.diagnostics`;
-        const obsolete = ['standby', 'result', 'coffee', 'espresso'];
-        for (const [group, { name: label, oldName, buttons }] of Object.entries(LAN_GROUPS)) {
-            await this.channel(`${lan}.${group}`, label, oldName);
+        const obsolete = ['standby', 'result', 'coffee', 'espresso', ...DRINK_BUTTONS.map(id => `${id}AtMachine`)];
+        const groups = { ...LAN_GROUPS };
+        if (soul?.profileNames.size) {
+            await this.channel(`${lan}.${PROFILE_GROUP}`, 'Profiles');
+            for (const [profile, name] of soul.profileNames) {
+                groups[`${PROFILE_GROUP}.profile${profile}`] = { name, profile, buttons: DRINK_BUTTONS };
+            }
+        }
+        for (const [group, { name: label, oldName, buttons, profile }] of Object.entries(groups)) {
+            const profileDrinks = profile ? soul.drinksByProfile.get(profile) : undefined;
+            const channelId = `${lan}.${group}`;
+            const previousName = profile ? (await this.getObjectAsync(channelId))?.common?.name : oldName;
+            await this.channel(channelId, label, previousName !== label ? previousName : undefined);
             for (const id of buttons) {
-                const manual = group === 'control.drinks';
-                const legacyId = manual ? `${id}AtMachine` : id;
-                if (group !== 'control') obsolete.push(legacyId);
+                if (group === 'diagnostics') obsolete.push(id);
                 const stateId = `${lan}.${group}.${id}`;
-                if (Object.hasOwn(PROFILE_DRINK_BUTTONS, id) && !profileDrinks.has(id)) {
+                if (Object.hasOwn(PROFILE_DRINK_BUTTONS, id) && !profileDrinks?.has(id)) {
                     if ((await this.getObjectAsync(stateId))?.type === 'state') await this.delObjectAsync(stateId);
                     continue;
                 }
                 const existing = await this.getObjectAsync(stateId);
-                const previous = existing || (group !== 'control' && await this.getObjectAsync(`${control}.${legacyId}`));
+                const previous = existing || (group === 'diagnostics' && await this.getObjectAsync(`${control}.${id}`));
                 const previousName = previous?.common?.name;
                 const defaultName = BUTTON_NAMES[id];
                 const previousEnglish = (typeof previousName === 'string' ? previousName : previousName?.en)?.toLowerCase();
                 const expectedName = defaultName.toLowerCase();
                 const previousWasDefault = previousEnglish === expectedName
-                    || OLD_BUTTON_NAMES[legacyId]?.includes(previousEnglish)
-                    || (manual && previousEnglish === `${expectedName} (at the machine)`);
+                    || OLD_BUTTON_NAMES[id]?.includes(previousEnglish);
                 const name = previousName && !previousWasDefault ? previousName : defaultName;
                 await this.setObjectNotExistsAsync(stateId, {
                     type: 'state', common: { name, type: 'boolean', role: 'button', read: true, write: true, def: false }, native: {},
@@ -347,11 +364,19 @@ class CoffeeLink extends utils.Adapter {
         if (separator === -1) return;
         const group = path.slice(0, separator);
         const action = path.slice(separator + 1);
-        if (!Object.hasOwn(LAN_GROUPS, group)) return;
-        const button = LAN_GROUPS[group].buttons.includes(action);
+        const profileMatch = /^control\.profiles\.profile([1-5])$/.exec(group);
+        const profile = profileMatch ? Number(profileMatch[1]) : undefined;
+        if (profile && !this.soul.profileNames?.has(profile)) return;
+        const buttons = profile ? DRINK_BUTTONS : Object.hasOwn(LAN_GROUPS, group) && LAN_GROUPS[group].buttons;
+        if (!buttons) return;
+        const button = buttons.includes(action);
         if (button ? state.val !== true : group !== 'control' || !Object.hasOwn(SETTINGS, action)) return;
 
-        const manual = group === 'control.drinks';
+        const stateId = `${lan}.${path}`;
+        if (profile && this.drinkPending) {
+            await this.setStateAsync(stateId, { val: false, ack: true });
+            return;
+        }
         const control = `${lan}.control`;
         const diagnostics = `${lan}.diagnostics`;
         const commandId = ++this.controlCommandId;
@@ -359,19 +384,29 @@ class CoffeeLink extends utils.Adapter {
         // Enqueue synchronously to preserve arrival order and allow Stop to preempt.
         const operation = action === 'readStatistics' ? this.refreshStatistics()
             : action === 'readSettings' ? this.readControlSettings(control)
-                : button ? this.soul.button(action, { manual }) : this.soul.setSetting(action, state.val);
-        const result = operation.then(value => ({ value }), error => ({ error: error.message, actual: error.actual }));
-        if (button) await this.setStateAsync(`${lan}.${group}.${action}`, { val: false, ack: true });
-        else await this.setStateAsync(`${diagnostics}.${action}Result`, { val: 'pending', ack: true });
-        const outcome = await result;
-        if (this.stopping) return;
-        if (!button && this.settingCommandIds.get(action) === commandId) {
-            await this.setStateAsync(`${control}.${action}`, { val: outcome.error ? outcome.actual ?? null : outcome.value, ack: true });
-            await this.setStateAsync(`${diagnostics}.${action}Result`, { val: outcome.error || 'confirmed', ack: true });
+                : button ? this.soul.button(action, { profile }) : this.soul.setSetting(action, state.val);
+        const result = operation.then(value => ({ value }),
+            error => ({ error: error.name === 'AbortError' ? 'cancelled' : error.message, actual: error.actual }));
+        if (profile) this.drinkPending = true;
+        try {
+            if (profile) await this.setStateAsync(`${diagnostics}.result`, { val: `${path}: pending`, ack: true });
+            if (button) await this.setStateAsync(stateId, { val: false, ack: true });
+            else await this.setStateAsync(`${diagnostics}.${action}Result`, { val: 'pending', ack: true });
+            const outcome = await result;
+            if (this.stopping) return;
+            if (profile && outcome.error && outcome.error !== 'cancelled') {
+                this.log.warn(`Drink command ${path}: ${outcome.error}`);
+            }
+            if (!button && this.settingCommandIds.get(action) === commandId) {
+                await this.setStateAsync(stateId, { val: outcome.error ? outcome.actual ?? null : outcome.value, ack: true });
+                await this.setStateAsync(`${diagnostics}.${action}Result`, { val: outcome.error || 'confirmed', ack: true });
+            }
+            if (commandId !== this.controlCommandId) return;
+            const request = profile ? path : action;
+            await this.setStateAsync(`${diagnostics}.result`, { val: `${request}: ${outcome.error || (button ? outcome.value : 'confirmed')}`, ack: true });
+        } finally {
+            if (profile) this.drinkPending = false;
         }
-        if (commandId !== this.controlCommandId) return;
-        const request = manual ? path : action;
-        await this.setStateAsync(`${diagnostics}.result`, { val: `${request}: ${outcome.error || (button ? outcome.value : 'confirmed')}`, ack: true });
     }
 
     async readControlSettings(prefix) {

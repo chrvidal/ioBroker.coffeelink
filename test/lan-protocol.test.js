@@ -215,3 +215,28 @@ test('native HTTP socket errors remain safely categorized',async()=>{
     await transport.registerOnce();
     assert.deepEqual(statuses,['register-network-unreachable']);
 });
+
+test('retries a poll notification only while its LAN request is unsent', async context => {
+    context.mock.timers.enable({ apis: ['setTimeout'] });
+    let notifications = 0;
+    const session = new CoffeeLanSession({
+        host: '192.168.12.33', machineIp: '192.168.12.39',
+        registrationRequestFn: async ({ method }) => {
+            assert.equal(method, 'PUT');
+            notifications++;
+            return { ok: true, status: 202 };
+        },
+    });
+    session.configure({ dsn: 'testdsn', key: 'synthetic-key' });
+    session.sessionVerified = true;
+    const result = assert.rejects(session.exchangeProperty('data_request', 'synthetic-value', { timeoutMs: 4000 }), /unconfirmed/);
+    await Promise.resolve();
+    assert.equal(notifications, 1);
+    context.mock.timers.tick(800);
+    await Promise.resolve();
+    assert.equal(notifications, 2);
+    session.request.sent = true;
+    context.mock.timers.tick(3200);
+    await result;
+    assert.equal(notifications, 2);
+});

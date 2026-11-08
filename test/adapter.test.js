@@ -93,6 +93,9 @@ test('moves legacy Cloud states and removes obsolete LAN buttons while preservin
     await adapter.state(`${root}.diagnostics.blackCoffeeCloudUpdatedAt`, 'Last update', 'string', 'text', '2026-10-01');
     await adapter.state(`${root}.lan.counters.coffee`, 'Coffee', 'number', 'value', 19);
     await adapter.channel(`${root}.lan.automation`, 'Automation');
+    await adapter.channel(`${root}.lan.control.drinks`, 'Drinks');
+    await adapter.state(`${root}.lan.control.drinks.coffee`, 'Coffee', 'boolean', 'button', false);
+    await adapter.state(`${root}.lan.diagnostics.readCoffeeRecipe`, 'Read saved coffee amount', 'boolean', 'button', false);
     await adapter.state(`${root}.lan.automation.coffee`, 'Coffee', 'boolean', 'button', true);
     await adapter.state(`${root}.lan.automation.espresso`, 'Espresso', 'boolean', 'button', true);
     await adapter.state(`${root}.lan.receivedAt`, 'Old LAN timestamp', 'string', 'text', '2026-11-01');
@@ -150,12 +153,13 @@ test('routes only recent, explicit control writes for the opted-in LAN machine',
     adapter.activeLanDevice = 'machines.synthetic';
     const lan = 'machines.synthetic.lan';
     const root = `${lan}.control`;
-    const drinks = `${root}.drinks`;
+    const drinks = `${root}.profiles.profile1`;
     const automation = `${lan}.automation`;
     const diagnostics = `${lan}.diagnostics`;
     const calls = [];
     adapter.soul = {
-        button: async (name, { manual }) => { calls.push([name, manual]); return 'sent'; },
+        profileNames: new Map([[1, 'Kitchen']]),
+        button: async (name, { profile }) => { calls.push([name, profile]); return 'sent'; },
         setSetting: async (name, value) => { calls.push([name, value]); return value; },
     };
     const click = { val: true, ack: false, ts: Date.now() };
@@ -164,17 +168,18 @@ test('routes only recent, explicit control writes for the opted-in LAN machine',
     adapter.config.lanEnabled = true;
     await adapter.onControlState(button, { ...click, ack: true });
     await adapter.onControlState(button, { ...click, ts: click.ts - 10000 });
-    await adapter.onControlState('coffeelink.0.machines.other.lan.control.drinks.coffee', click);
+    await adapter.onControlState('coffeelink.0.machines.other.lan.control.profiles.profile1.coffee', click);
+    await adapter.onControlState(`coffeelink.0.${root}.drinks.coffee`, click);
     await adapter.onControlState(`coffeelink.0.${root}.coffee`, click);
     await adapter.onControlState(`coffeelink.0.${root}.coffeeAtMachine`, click);
     await adapter.onControlState(`coffeelink.0.${automation}.coffee`, click);
     await adapter.onControlState(`coffeelink.0.${diagnostics}.off`, click);
     await adapter.onControlState(button, click);
-    assert.deepEqual(calls, [['coffee', true]]);
+    assert.deepEqual(calls, [['coffee', 1]]);
     assert.deepEqual(adapter.states.get(`${drinks}.coffee`), { val: false, ack: true });
-    assert.equal(adapter.states.get(`${diagnostics}.result`).val, 'control.drinks.coffee: sent');
+    assert.equal(adapter.states.get(`${diagnostics}.result`).val, 'control.profiles.profile1.coffee: sent');
     await adapter.onControlState(`coffeelink.0.${root}.autoOff`, { val: 1, ack: false, ts: Date.now() });
-    assert.deepEqual(calls, [['coffee', true], ['autoOff', 1]]);
+    assert.deepEqual(calls, [['coffee', 1], ['autoOff', 1]]);
     assert.deepEqual(adapter.states.get(`${root}.autoOff`), { val: 1, ack: true });
     assert.equal(adapter.states.get(`${diagnostics}.autoOffResult`).val, 'confirmed');
     assert.equal(adapter.states.get(`${diagnostics}.result`).val, 'autoOff: confirmed');
@@ -208,6 +213,32 @@ test('a mismatched setting clears the pending input with the machine value and r
     assert.equal(adapter.states.get(`${diagnostics}.result`).val, 'autoOff: setting-readback-mismatch');
 });
 
+test('a second drink press leaves the first command and its result pending', async () => {
+    const adapter = makeAdapter();
+    adapter.namespace = 'coffeelink.0';
+    adapter.activeLanDevice = 'machines.synthetic';
+    adapter.config.lanEnabled = true;
+    const lan = 'machines.synthetic.lan';
+    const button = `${lan}.control.profiles.profile1.coffee`;
+    let complete;
+    let calls = 0;
+    adapter.soul = {
+        profileNames: new Map([[1, 'Kitchen']]),
+        button: () => {
+            calls++;
+            return new Promise(resolve => { complete = resolve; });
+        },
+    };
+    const click = { val: true, ack: false, ts: Date.now() };
+    const first = adapter.onControlState(`coffeelink.0.${button}`, click);
+    await adapter.onControlState(`coffeelink.0.${button}`, click);
+    assert.equal(calls, 1);
+    assert.equal(adapter.states.get(`${lan}.diagnostics.result`).val, 'control.profiles.profile1.coffee: pending');
+    complete('sent');
+    await first;
+    assert.equal(adapter.states.get(`${lan}.diagnostics.result`).val, 'control.profiles.profile1.coffee: sent');
+});
+
 test('replaces the old standby control with off', async () => {
     const adapter = makeAdapter();
     const id = 'machines.synthetic.lan.control.standby';
@@ -239,14 +270,11 @@ test('migrates LAN buttons and results, keeping only direct controls and setting
     await adapter.setupControls(root);
     await adapter.setupControls(root);
     assert.equal(adapter.objects.get(prefix).common.name, 'Controls');
-    assert.equal(adapter.objects.get(`${prefix}.drinks`).common.name, 'Drinks');
     assert.deepEqual([...adapter.objects.keys()].filter(id => id.startsWith(`${prefix}.`)).map(id => id.slice(prefix.length + 1)).sort(),
-        ['autoOff', 'drinks', 'drinks.coffee', 'drinks.espresso', 'off', 'stopDrink', 'wake', 'waterHardness']);
+        ['autoOff', 'off', 'stopDrink', 'wake', 'waterHardness']);
     const diagnostics = `${root}.lan.diagnostics`;
     assert.equal(adapter.objects.has(`${root}.lan.automation`), false);
-    assert.deepEqual(adapter.states.get(`${prefix}.drinks.coffee`), { val: false, ack: true });
     assert.equal(adapter.objects.get(`${prefix}.wake`).common.name, 'Wake from standby');
-    assert.equal(adapter.objects.get(`${prefix}.drinks.coffee`).common.name, 'Start Coffee');
     assert.deepEqual(adapter.states.get(`${prefix}.autoOff`), { val: 2, ack: true });
     for (const id of ['readStatus', 'readSettings', 'readStatistics']) {
         assert.equal(adapter.objects.get(`${diagnostics}.${id}`).common.role, 'button');
@@ -259,24 +287,41 @@ test('migrates LAN buttons and results, keeping only direct controls and setting
 test('exposes available profile drinks as direct LAN buttons', async () => {
     const adapter = makeAdapter();
     const root = 'machines.synthetic';
-    const cappuccino = `${root}.lan.control.drinks.cappuccino`;
+    const profiles = `${root}.lan.control.profiles`;
+    const cappuccino = `${profiles}.profile1.cappuccino`;
     const legacy = `${root}.lan.control.cappuccinoAtMachine`;
-    const unavailable = `${root}.lan.control.drinks.caffeLatte`;
+    const unavailable = `${profiles}.profile1.caffeLatte`;
     adapter.activeLanDevice = root;
     adapter.namespace = 'coffeelink.0';
     adapter.config.lanEnabled = true;
+    await adapter.setObjectNotExistsAsync(root, { type: 'device', common: { name: 'Coffee Link machine' } });
     await adapter.setObjectNotExistsAsync(legacy, { type: 'state', common: { name: 'Start Cappuccino (at the machine)' } });
     await adapter.setObjectNotExistsAsync(unavailable, { type: 'state', common: {} });
     const recipe = Buffer.from('d017a6f001071c0219010100281b0102030900d20400778c', 'hex').toString('base64');
-    const properties = new Map([['data_request', {}], ['d302_monitor', {}], ['d045_1_rec_cappuccino', { value: recipe }]]);
+    const names = Buffer.from('d047a4f00103004b00690074006300680065006e0000000000000100470075006500730074000000000000000000000100540068006900720064000000000000000000000100e318', 'hex').toString('base64');
+    const properties = new Map([
+        ['data_request', {}], ['d302_monitor', {}], ['d045_1_rec_cappuccino', { value: recipe }],
+        ['d034_profiles_1_3', { value: names }],
+    ]);
     await adapter.prepareSoul(root, { model: 'ECAM612.55' }, properties);
+    assert.equal(adapter.objects.get(root).common.name, 'PrimaDonna Soul');
     assert.equal(adapter.objects.get(cappuccino).common.name, 'Start Cappuccino');
     assert.equal(adapter.objects.get(cappuccino).common.write, true);
     assert.equal(adapter.objects.has(unavailable), false);
     assert.equal(adapter.objects.has(legacy), false);
     const calls = [];
-    adapter.soul.button = async (action, { manual }) => { calls.push([action, manual]); return 'sent'; };
+    adapter.soul.button = async (action, { profile }) => { calls.push([action, profile]); return 'sent'; };
     await adapter.onControlState(`${adapter.namespace}.${cappuccino}`, { val: true, ack: false, ts: Date.now() });
-    assert.deepEqual(calls, [['cappuccino', true]]);
+    assert.equal(adapter.objects.get(`${profiles}.profile1`).common.name, 'Kitchen');
+    assert.equal(adapter.objects.get(`${profiles}.profile2`).common.name, 'Guest');
+    assert.equal(adapter.objects.get(`${profiles}.profile3`).common.name, 'Third');
+    assert.equal(adapter.objects.has(`${profiles}.profile4`), false);
+    assert.equal(adapter.objects.has(`${profiles}.profile1.cappuccino`), true);
+    assert.equal(adapter.objects.has(`${profiles}.profile2.cappuccino`), false);
+    for (const slot of [2, 4]) {
+        await adapter.onControlState(`${adapter.namespace}.${profiles}.profile${slot}.coffee`, { val: true, ack: false, ts: Date.now() });
+    }
+    assert.equal(adapter.objects.has(`${root}.lan.control.drinks`), false);
+    assert.deepEqual(calls, [['cappuccino', 1], ['coffee', 2]]);
     assert.deepEqual(adapter.states.get(cappuccino), { val: false, ack: true });
 });

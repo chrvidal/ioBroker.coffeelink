@@ -9,6 +9,12 @@ const READY = 'd012750f00000000000700000000000000d6a3';
 const READY_SHORT = 'd00d750000000000000700005a3a';
 const BUSY = 'd012750f000000000007040000000000001765';
 const seconds = () => Math.floor(Date.now() / 1000);
+const PROFILE_NAMES = Buffer.from('d046a4f00103004b00690074006300680065006e000000000000010047007500650073007400000000000000000000010054006800690072006400000000000000000000012397', 'hex').toString('base64');
+const COFFEE_FRAMES = {
+    coffee: ['0d07a6f001022567', 'd012a6f0010219011b04010096020304000e17', '0d1183f002011b040100960203040006d84e'],
+    espresso: ['0d07a6f001011504', 'd014a6f0010108000100281b01020404001901a3ea', '0d1183f001010100281b0102040400064894'],
+    coffee2: ['0d07a6f002027034', 'd012a6f0020219011b0101006e02030400b477', '0d1183f002011b0101006e020304000af2f0'],
+};
 const PROFILE_DRINK_FRAMES = [
     ['d045_1_rec_cappuccino', 'cappuccino', 'd017a6f001071c0219010100281b0102030900d20400778c', '0d1683f007011c020100281b0102030900d204000667c5'],
     ['d046_1_rec_latte_macchiato', 'latteMacchiato', 'd017a6f001081c0219010100281b010203090118040015b0', '0d1683f008011c020100281b010203090118040006e325'],
@@ -30,7 +36,7 @@ function properties(hex, timestamp = seconds()) {
     return new Map([[name, { value: value.toString('base64') }]]);
 }
 
-function simulatedSoul(steps, recipes) {
+function simulatedSoul(steps, recipes = new Map()) {
     const session = {
         async exchangeProperty(name, value, { match }) {
             const next = steps.shift();
@@ -60,7 +66,7 @@ function simulatedSoul(steps, recipes) {
             throw Error('unconfirmed');
         },
     };
-    return new EcamSoul(session, recipes);
+    return new EcamSoul(session, new Map([['d034_profiles_1_3', { value: PROFILE_NAMES }], ...recipes]));
 }
 
 test('enables Soul commands only for detected Soul models with the expected properties', () => {
@@ -71,16 +77,18 @@ test('enables Soul commands only for detected Soul models with the expected prop
     assert.equal(supportsSoul({ model: 'ECAM612' }, new Map()), false);
 });
 
-test('sends one validated power frame and supports coffee, espresso and stop presets', async () => {
+test('sends power and stop frames and uses the saved coffee and espresso amounts', async () => {
     const steps = [
         ['data_request', '0d07840f02015512'], ['data_request', '0d07840f01010041'],
-        ['data_request', '0d05750fda25', READY], ['data_request', '0d1183f002011b040100f002030400060ab7'],
-        ['data_request', '0d05750fda25', READY], ['data_request', '0d1183f0010101007e1b030202040006afe2'],
+        ['data_request', '0d05750fda25', READY],
+        ['data_request', ...COFFEE_FRAMES.coffee.slice(0, 2)], ['data_request', COFFEE_FRAMES.coffee[2]],
+        ['data_request', '0d05750fda25', READY],
+        ['data_request', ...COFFEE_FRAMES.espresso.slice(0, 2)], ['data_request', COFFEE_FRAMES.espresso[2]],
         ['data_request', '0d0d83f010020f00fa1b010659a6'],
     ];
     const soul = simulatedSoul(steps);
     for (const action of ['wake', 'off', 'coffee', 'espresso', 'stopDrink']) {
-        assert.equal(await soul.button(action), 'sent');
+        assert.equal(await soul.button(action, { profile: 1 }), 'sent');
     }
     await assert.rejects(soul.button('factoryReset'), /unsupported-command/);
     await assert.rejects(soul.button('standby'), /unsupported-command/);
@@ -94,19 +102,21 @@ test('rejects brew when the ready response is busy, stale or CRC-invalid', async
         [`${READY.slice(0, -2)}00`, seconds(), /monitor-invalid/],
     ]) {
         const steps = [['data_request', '0d05750fda25', reply, timestamp]];
-        await assert.rejects(simulatedSoul(steps).button('coffee'), error);
+        await assert.rejects(simulatedSoul(steps).button('coffee', { profile: 1 }), error);
         assert.equal(steps.length, 0);
     }
 });
 
 test('prepares the selected profile recipe with its own amounts and no save operation', async () => {
-    for (const [property, action, recipe, command] of PROFILE_DRINK_FRAMES) {
+    const requests = ['0d07a6f0010775c2', '0d07a6f00108842d', '0d07a6f00109940c', '0d07a6f001055580', '0d07a6f0010445a1', '0d07a6f001101714'];
+    for (const [index, [property, action, recipe, command]] of PROFILE_DRINK_FRAMES.entries()) {
         const steps = [
             ['d302_monitor', READY, seconds() - 60],
+            ['data_request', requests[index], recipe],
             ['data_request', command],
         ];
         const recipes = new Map([[property, { value: Buffer.from(recipe, 'hex').toString('base64') }]]);
-        assert.equal(await simulatedSoul(steps, recipes).button(action, { manual: true }), 'sent');
+        assert.equal(await simulatedSoul(steps, recipes).button(action, { profile: 1 }), 'sent');
         assert.equal(steps.length, 0);
     }
 });
@@ -122,12 +132,48 @@ test('does not send a profile drink with an unavailable recipe or a busy machine
         'd012a6f0010719010100280100280900d2e7f7',
         'd00fa6f001071901010000090000356a',
     ]) {
-        const recipes = new Map([[property, { value: Buffer.from(recipe, 'hex').toString('base64') }]]);
-        await assert.rejects(simulatedSoul([], recipes).button(action, { manual: true }), /recipe-unavailable/);
+        const steps = [['d302_monitor', READY], ['data_request', '0d07a6f0010775c2', recipe]];
+        await assert.rejects(simulatedSoul(steps).button(action, { profile: 1 }), /recipe-unconfirmed/);
+        assert.equal(steps.length, 0);
     }
     const recipes = new Map([[property, { value: Buffer.from(valid, 'hex').toString('base64') }]]);
     const steps = [['d302_monitor', BUSY]];
-    await assert.rejects(simulatedSoul(steps, recipes).button(action, { manual: true }), /machine-not-ready/);
+    await assert.rejects(simulatedSoul(steps, recipes).button(action, { profile: 1 }), /machine-not-ready/);
+    assert.equal(steps.length, 0);
+});
+
+test('reads and prepares profile 2 without falling back to profile 1 or to an older cloud amount', async () => {
+    const [request, response, command] = COFFEE_FRAMES.coffee2;
+    const [profile1Request, profile1Reply] = COFFEE_FRAMES.coffee;
+    const steps = [
+        ['d302_monitor', READY],
+        ['data_request', request, response],
+        ['data_request', command],
+        ['d302_monitor', READY],
+        ['data_request', request, profile1Reply],
+        ['d302_monitor', READY],
+        ['data_request', request, response, seconds() - 60],
+        ['d302_monitor', READY],
+        ['data_request', request],
+    ];
+    const cloud = new Map([['d040_1_rec_regular', { value: Buffer.from(profile1Reply, 'hex').toString('base64') }]]);
+    const soul = simulatedSoul(steps, cloud);
+    assert.notEqual(request, profile1Request);
+    assert.equal(await soul.button('coffee', { profile: 2 }), 'sent');
+    for (let attempt = 0; attempt < 3; attempt++) {
+        await assert.rejects(soul.button('coffee', { profile: 2 }), /recipe-unconfirmed/);
+    }
+    assert.equal(steps.length, 0);
+});
+
+test('uses the exact slot from a named profile button', async () => {
+    const [request, reply, command] = COFFEE_FRAMES.coffee2;
+    const steps = [['d302_monitor', READY], ['data_request', request, reply], ['data_request', command]];
+    const soul = simulatedSoul(steps);
+    assert.deepEqual([...soul.profileNames], [[1, 'Kitchen'], [2, 'Guest'], [3, 'Third']]);
+    await assert.rejects(soul.button('coffee'), /profile-unavailable/);
+    await assert.rejects(soul.button('coffee', { profile: 4 }), /profile-unavailable/);
+    assert.equal(await soul.button('coffee', { profile: 2 }), 'sent');
     assert.equal(steps.length, 0);
 });
 
@@ -150,30 +196,59 @@ test('recognizes a new signed monitor even when the device clock runs behind', a
     assert.equal(steps.length, 0);
 });
 
-test('explicit at-machine controls accept a cached idle monitor and reject a cached busy monitor', async () => {
+test('accepts a cached ready monitor but checks the machine again if a busy report is old', async () => {
     const timestamp = seconds() - 4700;
     const ready = [
         ['d302_monitor', READY_SHORT, timestamp],
-        ['data_request', '0d1183f0010101007e1b030202040006afe2'],
+        ['data_request', ...COFFEE_FRAMES.espresso.slice(0, 2)], ['data_request', COFFEE_FRAMES.espresso[2]],
     ];
-    assert.equal(await simulatedSoul(ready).button('espresso', { manual: true }), 'sent');
+    assert.equal(await simulatedSoul(ready).button('espresso', { profile: 1 }), 'sent');
     assert.equal(ready.length, 0);
-    const busy = [['d302_monitor', BUSY, timestamp]];
-    await assert.rejects(simulatedSoul(busy).button('coffee', { manual: true }), /machine-not-ready/);
+    const recovered = [
+        ['d302_monitor', BUSY, timestamp], ['data_request', '0d05750fda25', READY],
+        ['data_request', ...COFFEE_FRAMES.coffee.slice(0, 2)], ['data_request', COFFEE_FRAMES.coffee[2]],
+    ];
+    assert.equal(await simulatedSoul(recovered).button('coffee', { profile: 1 }), 'sent');
+    assert.equal(recovered.length, 0);
+    const busy = [['d302_monitor', BUSY]];
+    await assert.rejects(simulatedSoul(busy).button('coffee', { profile: 1 }), /machine-not-ready/);
     assert.equal(busy.length, 0);
+});
+
+test('recovers a read interrupted by rekeying without repeating a brew after uncertain delivery', async () => {
+    let recipeReads = 0;
+    let brewAttempts = 0;
+    const session = {
+        async readProperty(_name, { match }) { return match(properties(READY)); },
+        async exchangeProperty(_name, value, { match }) {
+            const opcode = Buffer.from(value, 'base64')[2];
+            if (opcode === 0xa6) {
+                if (++recipeReads === 1) throw Error('session-ended');
+                return match(properties(COFFEE_FRAMES.coffee[1]));
+            }
+            assert.equal(opcode, 0x83);
+            brewAttempts++;
+            throw Error('session-ended');
+        },
+    };
+    const soul = new EcamSoul(session, new Map([['d034_profiles_1_3', { value: PROFILE_NAMES }]]));
+    await assert.rejects(soul.button('coffee', { profile: 1 }), /session-ended/);
+    assert.equal(recipeReads, 2);
+    assert.equal(brewAttempts, 1);
 });
 
 test('stop cancels an in-flight readiness check before a brew can be sent', async () => {
     const commands = [];
-    const soul = new EcamSoul({ readProperty: async () => { throw Error('unconfirmed'); }, exchangeProperty(name, value, { signal, match }) {
+    const session = { readProperty: async () => { throw Error('unconfirmed'); }, exchangeProperty(name, value, { signal, match }) {
         const opcode = Buffer.from(value, 'base64')[2];
         commands.push(opcode);
         if (!match) return Promise.resolve('sent');
         return new Promise((resolve, reject) => {
             signal.addEventListener('abort', () => reject(Error('cancelled')), { once: true });
         });
-    } });
-    const brew = assert.rejects(soul.button('coffee'), /cancelled/);
+    } };
+    const soul = new EcamSoul(session, new Map([['d034_profiles_1_3', { value: PROFILE_NAMES }]]));
+    const brew = assert.rejects(soul.button('coffee', { profile: 1 }), /cancelled/);
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(await soul.button('stopDrink'), 'sent');
     await brew;
