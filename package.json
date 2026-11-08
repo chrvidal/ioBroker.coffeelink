@@ -2,7 +2,7 @@
   "name": "iobroker.coffeelink",
   "version": "0.1.0",
   "description": "Read Coffee Link status and counters. Optional LAN statistics and controls for PrimaDonna Soul.",
-  "author": "chrvidal <38847087+chrvidal@users.noreply.github.com>",
+  "author": "chrvidal <christian_vidal@icloud.com>",
   "license": "MIT",
   "repository": {
     "type": "git",

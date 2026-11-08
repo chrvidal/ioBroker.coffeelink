@@ -128,6 +128,6 @@ and [aioecam's statistics references](https://github.com/Styx85/aioecam/blob/60c
 
 MIT
 
-Copyright (c) 2026 chrvidal <38847087+chrvidal@users.noreply.github.com>
+Copyright (c) 2026 chrvidal <christian_vidal@icloud.com>
 
 [License text](LICENSE)
