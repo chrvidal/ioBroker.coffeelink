@@ -389,7 +389,7 @@ class CoffeeLink extends utils.Adapter {
         const commandId = ++this.controlCommandId;
         if (!button) this.settingCommandIds.set(action, commandId);
         // Enqueue synchronously to preserve arrival order and allow Stop to preempt.
-        const operation = action === 'readStatistics' ? this.refreshStatistics()
+        const operation = action === 'readStatistics' ? this.refreshStatistics({ manual: true })
             : action === 'readSettings' ? this.readControlSettings(control)
                 : button ? this.soul.button(action, { profile }) : this.soul.setSetting(action, state.val);
         const result = operation.then(value => ({ value }),
@@ -426,7 +426,7 @@ class CoffeeLink extends utils.Adapter {
         return values.size ? 'partial' : 'unconfirmed';
     }
 
-    async refreshStatistics() {
+    async refreshStatistics({ manual = false } = {}) {
         if (this.stopping || !this.soul || !this.lanReceiver?.sessionVerified) return 'lan-unavailable';
         if (this.statisticsPending) return 'busy';
         const device = this.activeLanDevice;
@@ -435,7 +435,9 @@ class CoffeeLink extends utils.Adapter {
         try {
             const { statistics, missingPages } = await this.soul.readStatistics();
             if (this.stopping) return 'session-ended';
-            if (missingPages.length) this.log.warn(`Machine statistics pages unconfirmed: ${missingPages.join(', ')}`);
+            if (missingPages.length) {
+                this.log[manual ? 'warn' : 'debug'](`Machine statistics pages unconfirmed: ${missingPages.join(', ')}`);
+            }
             if (!statistics.length) return 'unconfirmed';
             await this.channel(root, 'Statistics', 'Machine display statistics (ECAM A2)');
             for (const { id, label, value, unit } of statistics) {
@@ -451,7 +453,9 @@ class CoffeeLink extends utils.Adapter {
         } catch (error) {
             const safeStatuses = ['busy', 'cancelled', 'session-ended', 'lan-unavailable', 'not-delivered', 'unconfirmed'];
             const status = safeStatuses.includes(error.message) ? error.message : 'failed';
-            if (!this.stopping && !['busy', 'cancelled'].includes(status)) this.log.warn(`Machine statistics: ${status}`);
+            if (!this.stopping && !['busy', 'cancelled'].includes(status)) {
+                this.log[manual || status === 'failed' ? 'warn' : 'debug'](`Machine statistics: ${status}`);
+            }
             return status;
         } finally {
             this.statisticsPending = false;

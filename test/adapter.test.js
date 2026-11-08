@@ -11,7 +11,7 @@ class AdapterStub extends EventEmitter {
         this.config = { email: 'synthetic@example.net', password: 'not-a-real-password', pollInterval: 15 };
         this.objects = new Map();
         this.states = new Map();
-        this.log = { warn: () => {} };
+        this.log = { warn: () => {}, debug: () => {} };
     }
     async setObjectNotExistsAsync(id, object) {
         if (!this.objects.has(id)) this.objects.set(id, object);
@@ -209,6 +209,33 @@ test('routes only recent, explicit control writes for the opted-in LAN machine',
     assert.deepEqual(adapter.states.get(`${root}.autoOff`), { val: 2, ack: true });
     assert.deepEqual(adapter.states.get(`${root}.waterHardness`), { val: 1, ack: true });
     assert.equal(adapter.states.get(`${diagnostics}.result`).val, 'readSettings: confirmed');
+});
+
+test('logs unanswered background statistics at debug level and reports a manual read failure', async () => {
+    const adapter = makeAdapter();
+    adapter.namespace = 'coffeelink.0';
+    adapter.activeLanDevice = 'machines.synthetic';
+    adapter.config.lanEnabled = true;
+    adapter.lanReceiver = { sessionVerified: true };
+    adapter.soul = { readStatistics: async () => {
+        throw new Error('not-delivered');
+    } };
+    const debug = [];
+    const warnings = [];
+    adapter.log = { debug: message => debug.push(message), warn: message => warnings.push(message) };
+    assert.equal(await adapter.refreshStatistics(), 'not-delivered');
+
+    const diagnostics = 'machines.synthetic.lan.diagnostics';
+    await adapter.onControlState(`coffeelink.0.${diagnostics}.readStatistics`, { val: true, ack: false, ts: Date.now() });
+    assert.equal(adapter.states.get(`${diagnostics}.result`).val, 'readStatistics: not-delivered');
+
+    adapter.soul.readStatistics = async () => ({
+        statistics: [{ id: 'blackCoffee', label: 'Black coffee beverages', value: 10083 }], missingPages: [3010],
+    });
+    assert.equal(await adapter.refreshStatistics(), 'partial');
+    assert.equal(adapter.states.get('machines.synthetic.lan.statistics.blackCoffee').val, 10083);
+    assert.deepEqual(debug, ['Machine statistics: not-delivered', 'Machine statistics pages unconfirmed: 3010']);
+    assert.deepEqual(warnings, ['Machine statistics: not-delivered']);
 });
 
 test('a mismatched setting clears the pending input with the machine value and reports the failure', async () => {

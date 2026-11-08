@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link",
@@ -67,6 +67,19 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
+      "0.2.2": {
+        "en": "Log unanswered automatic statistics reads at debug level.",
+        "de": "Ausbleibende Antworten bei automatischen Statistikabrufen stehen jetzt im Debug-Log.",
+        "ru": "Отсутствие ответа при автоматическом чтении статистики записывается в журнал отладки.",
+        "pt": "As leituras automáticas de estatísticas sem resposta passam a ser registadas no nível de depuração.",
+        "nl": "Automatische statistiekverzoeken zonder antwoord worden op debugniveau gelogd.",
+        "fr": "Les lectures automatiques de statistiques sans réponse passent dans le journal de débogage.",
+        "it": "Le letture automatiche delle statistiche senza risposta vengono registrate a livello di debug.",
+        "es": "Las consultas automáticas de estadísticas sin respuesta se registran en el nivel de depuración.",
+        "pl": "Brak odpowiedzi na automatyczny odczyt statystyk trafia do dziennika debugowania.",
+        "uk": "Відсутність відповіді на автоматичне читання статистики записується до журналу налагодження.",
+        "zh-cn": "自动读取统计数据未收到响应时，仅记录调试日志。"
+      },
       "0.2.1": {
         "en": "Reconnect to PrimaDonna Soul after a LAN interruption or power loss.",
         "de": "Stellt die LAN-Verbindung zur PrimaDonna Soul nach einer Unterbrechung oder einem Stromausfall wieder her.",

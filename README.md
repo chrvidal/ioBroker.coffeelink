@@ -148,6 +148,11 @@ and [aioecam's statistics references](https://github.com/Styx85/aioecam/blob/60c
 
 ## Changelog
 
+### 0.2.2
+
+- Move unanswered or incomplete automatic LAN statistics reads to the debug log.
+- Include ioBroker integration test diagnostics in Windows CI logs.
+
 ### 0.2.1
 
 - Restore the PrimaDonna Soul LAN connection after a network or power outage.
