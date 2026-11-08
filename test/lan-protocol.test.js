@@ -123,6 +123,36 @@ test('retries an HTTP registration failure after the cooldown', async context =>
     assert.equal(session.sessionVerified, false);
 });
 
+test('recovers after a previously registered machine remains offline through the short retries', async context => {
+    context.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: Date.UTC(2026, 10, 8) });
+    let online = true;
+    const session = new CoffeeLanSession({
+        host: '192.168.12.33', machineIp: '192.168.12.39',
+        registrationRequestFn: async () => {
+            if (!online) throw Object.assign(new Error('unreachable'), { code: 'EHOSTUNREACH' });
+            return { ok: true, status: 202 };
+        },
+    });
+    session.configure({ dsn: 'testdsn', key: 'synthetic-key' });
+    session.server = { listening: true };
+    await session.registerOnce();
+
+    online = false;
+    context.mock.timers.tick(300000);
+    await session.recoverRegistration();
+    assert.equal(session.registrationAttempts, 2);
+    context.mock.timers.tick(12000);
+    await Promise.resolve();
+    assert.equal(session.registrationAttempts, 3);
+    assert.equal(session.registered, false);
+
+    online = true;
+    context.mock.timers.tick(60000);
+    await session.recoverRegistration();
+    assert.equal(session.registrationAttempts, 4);
+    assert.equal(session.registered, true);
+});
+
 test('transient registration failures have a bounded budget without leaking details',async()=>{
     const statuses=[];
     const transport=new CoffeeLanSession({
