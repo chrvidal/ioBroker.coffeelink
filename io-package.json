@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link",
@@ -67,6 +67,19 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
+      "0.1.1": {
+        "en": "Detect the ioBroker LAN address automatically and remove manual callback settings.",
+        "de": "Die ioBroker-LAN-Adresse automatisch ermitteln und die Callback-Einstellungen ausblenden.",
+        "ru": "Автоматический выбор LAN-адреса ioBroker и упрощённые настройки подключения.",
+        "pt": "Deteção automática do endereço LAN do ioBroker e configuração de ligação simplificada.",
+        "nl": "Automatische detectie van het LAN-adres van ioBroker en eenvoudigere verbindingsinstellingen.",
+        "fr": "Détection automatique de l’adresse LAN d’ioBroker et configuration de connexion simplifiée.",
+        "it": "Rilevamento automatico dell’indirizzo LAN di ioBroker e configurazione di rete semplificata.",
+        "es": "Detección automática de la dirección LAN de ioBroker y configuración de red simplificada.",
+        "pl": "Automatyczne wykrywanie adresu LAN ioBroker i prostsza konfiguracja połączenia.",
+        "uk": "Автоматичний вибір LAN-адреси ioBroker і спрощені налаштування підключення.",
+        "zh-cn": "自动选择 ioBroker 局域网地址，简化本地连接设置。"
+      },
       "0.1.0": {
         "en": "Simpler LAN setup and a separate Drinks folder. Adds recipes for milk drinks and other presets.",
         "de": "Einfachere LAN-Einrichtung und eigener Getränkeordner. Neue Rezepte für Milchgetränke und weitere Spezialitäten.",
@@ -87,9 +100,7 @@
     "password": "",
     "pollInterval": 15,
     "lanEnabled": null,
-    "lanMachineIp": "",
-    "bind": null,
-    "port": null
+    "lanMachineIp": ""
   },
   "encryptedNative": [
     "password"

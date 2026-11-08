@@ -68,28 +68,7 @@
     "lanMachineIp": {
       "type": "text",
       "label": "Coffee machine IP address",
-      "newLine": true,
-      "xs": 12,
-      "sm": 12,
-      "md": 12,
-      "lg": 12,
-      "xl": 12
-    },
-    "bind": {
-      "type": "text",
-      "label": "ioBroker LAN IPv4 address",
-      "newLine": true,
-      "xs": 12,
-      "sm": 12,
-      "md": 12,
-      "lg": 12,
-      "xl": 12
-    },
-    "port": {
-      "type": "number",
-      "label": "LAN callback port",
-      "min": 1024,
-      "max": 65535,
+      "hidden": "!data.lanEnabled",
       "newLine": true,
       "xs": 12,
       "sm": 12,

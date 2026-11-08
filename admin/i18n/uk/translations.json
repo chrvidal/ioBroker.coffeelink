@@ -5,7 +5,5 @@
   "Polling interval (minutes)": "Polling interval (minutes)",
   "Enable LAN": "Enable LAN",
   "LAN adds local statistics and controls for PrimaDonna Soul machines. Connecting may interrupt the Coffee Link app's local connection.": "Підключення через LAN дає доступ до локальної статистики й керування PrimaDonna Soul. Підключення може перервати локальний зв'язок застосунку Coffee Link.",
-  "Coffee machine IP address": "Coffee machine IP address",
-  "ioBroker LAN IPv4 address": "ioBroker LAN IPv4 address",
-  "LAN callback port": "LAN callback port"
+  "Coffee machine IP address": "Coffee machine IP address"
 }

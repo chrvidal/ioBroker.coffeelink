@@ -4,7 +4,7 @@ const { createHash } = require('node:crypto');
 const utils = require('@iobroker/adapter-core');
 const { CoffeeCloudClient } = require('./lib/cloud-client');
 const { COUNTERS, getCounters, latestMonitor } = require('./lib/measurements');
-const { CoffeeLanSession } = require('./lib/lan-session');
+const { CoffeeLanSession, lanAddressFor } = require('./lib/lan-session');
 const { BUTTONS, PROFILE_DRINK_BUTTONS, SETTINGS, EcamSoul, supportsSoul } = require('./lib/ecam-soul');
 
 const DEVICE_LIMIT = 5;
@@ -83,10 +83,14 @@ class CoffeeLink extends utils.Adapter {
         await this.setLanStatus('disabled');
         if (this.lanEnabled) {
             try {
+                const machineIp = this.config.lanMachineIp?.trim() || '';
+                const host = await lanAddressFor(machineIp);
+                if (this.stopping) return;
+                const previousPort = this.config.port ?? this.config.lanListenPort;
                 this.lanReceiver = new CoffeeLanSession({
-                    host: this.config.bind ?? this.config.lanListenAddress,
-                    port: Number(this.config.port ?? this.config.lanListenPort ?? 10275),
-                    machineIp: this.config.lanMachineIp || '',
+                    host,
+                    port: previousPort ? Number(previousPort) : undefined,
+                    machineIp,
                     onProperties: (_properties, receivedAt) => {
                         if (!this.stopping && this.activeLanDevice) {
                             this.lanUpdates = this.lanUpdates

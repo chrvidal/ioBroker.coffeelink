@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {derive,encode,decode}=require('../lib/lan-protocol');
-const {CoffeeLanSession,postLocalRegistration}=require('../lib/lan-session');
+const {CoffeeLanSession,lanAddressFor,postLocalRegistration}=require('../lib/lan-session');
 const http=require('node:http');
 
 test('LAN key derivation returns independent direction keys',()=>{
@@ -59,10 +59,15 @@ test('rejects malformed encrypted payload and invalid LAN key',()=>{
     assert.throws(()=>new CoffeeLanSession({host:'127.0.0.1',port:10275,machineIp:'192.168.12.39'}));
 });
 
-test('ECAM612 uses POST+DSN+notify:0 exactly once on success',async()=>{
+test('chooses the source IPv4 address from the route to the machine', async () => {
+    assert.equal(await lanAddressFor('127.0.0.1'), '127.0.0.1');
+    await assert.rejects(lanAddressFor('coffee-machine'), /Enter the coffee machine IPv4 address/);
+});
+
+test('ECAM612 registers the default callback port with POST, DSN and notify:0',async()=>{
     const calls=[];
     const transport=new CoffeeLanSession({
-        host:'192.168.12.33',port:10275,machineIp:'192.168.12.39',
+        host:'192.168.12.33',machineIp:'192.168.12.39',
         registrationRequestFn:async(params)=>{calls.push(params);return {ok:true,status:202};},
     });
     transport.configure({dsn:'testdsn',key:'dontlogthiskey'});

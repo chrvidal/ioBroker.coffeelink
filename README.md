@@ -23,14 +23,15 @@ Local access is optional. It has been tested with a PrimaDonna Soul
 ECAM612.55. The adapter recognizes the ECAM610, ECAM612 and ECAM613 families
 as PrimaDonna Soul. Other Coffee Link models use cloud mode.
 
-1. Enter the machine's LAN IPv4 address and the ioBroker host's LAN IPv4
-   address. The machine must be able to reach that address and the callback
-   port. The default port is 10275.
-2. Select **Enable LAN** and save. This enables local statistics and controls.
+1. Select **Enable LAN** and enter the machine's LAN IPv4 address. The adapter
+   uses the host address selected by the route to the machine.
+2. Save to enable local statistics and controls.
    The adapter registers one machine at a time. Registration may interrupt
    the official Coffee Link app's local connection.
 3. Check `info.lan.status`. The value `verified` means the adapter received
-   authenticated machine data.
+   authenticated machine data. If there is a firewall between the host and the
+   machine, the machine must be able to reach the host on TCP port 10275.
+   Existing installations with a custom callback port keep using it.
 
 ## Objects
 
@@ -86,8 +87,7 @@ offers `readStatus` and `readStatistics`.
 The new LAN switch replaces the three development switches. Existing active
 LAN settings still work until you save a new choice. Existing read-only LAN
 settings keep controls disabled until you explicitly enable the new switch.
-Enter the machine and host addresses in the new form before saving if the
-fields are blank.
+Enter the machine's address before saving if the field is blank.
 
 Drink paths such as `lan.control.cappuccinoAtMachine` move to
 `lan.control.drinks.cappuccino`. The separate Automation buttons are removed.
@@ -110,6 +110,12 @@ The LAN implementation uses the
 and [aioecam's statistics references](https://github.com/Styx85/aioecam/blob/60c980f4584ec4085c185977d74f986ea7f08c41/src/aioecam/ecam/statistics.py).
 
 ## Changelog
+
+### 0.1.1
+
+- Select the ioBroker host address from the route to the coffee machine.
+- Use the default callback port for new installations and retain custom ports on upgrade.
+- Show the machine IP address field only when LAN is enabled.
 
 ### 0.1.0
 
