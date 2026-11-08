@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link",
@@ -67,6 +67,19 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
+      "0.2.1": {
+        "en": "Reconnect to PrimaDonna Soul after a LAN interruption or power loss.",
+        "de": "Stellt die LAN-Verbindung zur PrimaDonna Soul nach einer Unterbrechung oder einem Stromausfall wieder her.",
+        "ru": "Восстановление подключения к PrimaDonna Soul по локальной сети после обрыва связи или отключения питания.",
+        "pt": "Restabelece a ligação à PrimaDonna Soul após uma interrupção da rede local ou uma falha de energia.",
+        "nl": "Herstelt de LAN-verbinding met de PrimaDonna Soul na een netwerkonderbreking of stroomuitval.",
+        "fr": "Rétablit la connexion locale à la PrimaDonna Soul après une interruption du réseau ou une coupure de courant.",
+        "it": "Ripristina la connessione locale alla PrimaDonna Soul dopo un'interruzione di rete o di corrente.",
+        "es": "Restablece la conexión local con la PrimaDonna Soul tras un corte de red o de corriente.",
+        "pl": "Przywraca połączenie z PrimaDonna Soul po przerwie w działaniu sieci lokalnej lub zasilania.",
+        "uk": "Відновлює локальне з’єднання з PrimaDonna Soul після збою мережі або відключення живлення.",
+        "zh-cn": "在局域网中断或断电后重新连接 PrimaDonna Soul。"
+      },
       "0.2.0": {
         "en": "Named profile folders, saved drink recipes and retries for interrupted LAN reads.",
         "de": "Benannte Profilordner, gespeicherte Getränkerezepte und Wiederholungen bei unterbrochenen LAN-Abrufen.",

@@ -148,6 +148,12 @@ and [aioecam's statistics references](https://github.com/Styx85/aioecam/blob/60c
 
 ## Changelog
 
+### 0.2.1
+
+- Restore the PrimaDonna Soul LAN connection after a network or power outage.
+- Check for a response before replacing an idle LAN session.
+- Report unsupported LAN models and document what to include in a LAN bug report.
+
 ### 0.2.0
 
 - Discover named machine profiles and give each profile its own drink buttons.
