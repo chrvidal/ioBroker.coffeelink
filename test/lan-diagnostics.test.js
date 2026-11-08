@@ -41,16 +41,19 @@ test('recognizes bulk, single-name and property-wrapper LAN datapoints', () => {
     assert.equal(extractProperties({ data: { name: '../../bad', value: 9 } }).size, 0);
 });
 
-test('reads named counters through authenticated callbacks and requests the next poll', async () => {
+test('reads authenticated counters and recovers registration when callbacks stop', async context => {
+    context.mock.timers.enable({ apis: ['Date', 'setInterval'], now: Date.UTC(2026, 10, 8) });
     const key = 'test-local-secret';
     const host = '127.0.0.2';
     const port = 30000 + process.pid % 20000;
     const packets = [];
     const notifications = [];
+    let registrations = 0;
     const session = new CoffeeLanSession({
         host, port, machineIp: '127.0.0.1',
         registrationRequestFn: async (request) => {
             if (request.method === 'PUT') notifications.push(request.body.local_reg.notify);
+            else registrations++;
             return { status: 202, ok: true };
         },
         onProperties: values => packets.push(values),
@@ -152,6 +155,35 @@ test('reads named counters through authenticated callbacks and requests the next
         const fourth = await get(host, port, '/local_lan/commands.json');
         const fourthFrame = decode(fourth.body.enc, keys.toMachineKey, thirdFrame.iv, keys.toMachineSign, fourth.body.sign);
         assert.equal(JSON.parse(fourthFrame.plaintext).data.cmds[0].cmd.method, 'GET');
+
+        context.mock.timers.tick(300000);
+        await get(host, port, '/local_lan/commands.json');
+        context.mock.timers.tick(30000);
+        assert.equal(registrations, 1);
+        assert.equal(session.sessionVerified, true);
+
+        context.mock.timers.tick(270000);
+        await Promise.resolve();
+        assert.equal(registrations, 1);
+        context.mock.timers.tick(30000);
+        await Promise.resolve();
+        assert.equal(registrations, 2);
+        assert.equal(session.sessionVerified, false);
+        assert.equal((await get(host, port, '/local_lan/commands.json')).status, 404);
+
+        const newExchange = await post(host, port, '/local_lan/key_exchange.json', {
+            key_exchange: { random_1: 'new-seed==', time_1: '355921562000000', key_id: 123456 },
+        });
+        assert.equal(newExchange.status, 200);
+        const newKeys = derive(key, 'new-seed', newExchange.body.random_2,
+            '355921562000000', String(newExchange.body.time_2));
+        const counter = { seq_no: '0', data: { name: 'd700_tot_bev_b', value: 10073 } };
+        const { enc, sign } = encode(JSON.stringify(counter), newKeys.fromMachineKey,
+            newKeys.fromMachineIv, newKeys.fromMachineSign);
+        const reply = await post(host, port, '/local_lan/property/datapoint.json', { enc, sign });
+        assert.equal(reply.status, 200);
+        assert.equal(session.sessionVerified, true);
+        assert.equal(packets.at(-1).get('d700_tot_bev_b').value, 10073);
     } finally { await session.stop(); }
 });
 

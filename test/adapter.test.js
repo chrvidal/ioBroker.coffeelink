@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
 const EventEmitter = require('node:events');
+const { CoffeeLanSession } = require('../lib/lan-session');
 
 class AdapterStub extends EventEmitter {
     constructor() {
@@ -115,6 +116,19 @@ test('cloud failure marks connection false without writing cloud values', async 
     await adapter.refresh();
     assert.equal(adapter.states.get('info.connection').val, false);
     assert.equal(adapter.states.get('info.cloud.connected').val, false);
+});
+
+test('reports unsupported LAN models while keeping cloud data available', async () => {
+    const adapter = makeAdapter();
+    adapter.lanReceiver = new CoffeeLanSession({ host: '192.168.12.33', machineIp: '192.168.12.39' });
+    adapter.client = {
+        listDevices: async () => [{ dsn: 'OTHER-MODEL', model: 'ECAM450.65', connection_status: 'Online' }],
+        readProperties: async () => new Map([['d706_tot_id2_coffee', { value: '42' }]]),
+    };
+    await adapter.refresh();
+    assert.equal(adapter.states.get('info.lan.status').val, 'unsupported-model');
+    assert.equal(adapter.states.get('info.cloud.connected').val, true);
+    assert.equal([...adapter.objects.keys()].some(id => id.startsWith('machines.') && id.endsWith('.lan')), false);
 });
 
 test('upgrades read-only LAN without implicitly enabling controls', () => {

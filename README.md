@@ -15,11 +15,13 @@ other PrimaDonna Soul models is welcome.
 ## Setup
 
 1. Add a Coffee Link instance in ioBroker Admin.
-2. Enter the email address and password from the Coffee Link app. The adapter
-   uses the European Coffee Link service. ioBroker encrypts the stored password.
+2. Enter the email address and password from the Coffee Link app. ioBroker
+   encrypts the stored password.
 3. Save the instance. The default cloud polling interval is 15 minutes.
 
 Cloud mode is read-only and works without a local connection to the machine.
+The adapter supports European (EU) Coffee Link accounts. An account in another
+region may get a login error even with the correct credentials.
 An online cloud status means that the service reports the machine online.
 Check the status and counter timestamps when you need to know how recent a
 value is.
@@ -28,7 +30,9 @@ value is.
 
 Local access is optional. It has been tested with a PrimaDonna Soul
 ECAM612.55. The adapter recognizes the ECAM610, ECAM612 and ECAM613 families
-as PrimaDonna Soul. Other Coffee Link models use cloud mode.
+as PrimaDonna Soul. Other Coffee Link models show only the `cloud` branch.
+With LAN enabled and no supported machine on the account, the LAN status is
+`unsupported-model`.
 
 1. Select **Enable LAN** and enter the machine's LAN IPv4 address. The adapter
    uses the host address selected by the route to the machine.
@@ -39,6 +43,10 @@ as PrimaDonna Soul. Other Coffee Link models use cloud mode.
    authenticated machine data. If there is a firewall between the host and the
    machine, the machine must be able to reach the host on TCP port 10275.
    Existing installations with a custom callback port keep using it.
+
+If LAN callbacks stop for five minutes, the adapter checks the connection with
+a read before registering again. The app's local connection may be interrupted
+when the adapter re-registers.
 
 ## Objects
 
@@ -113,10 +121,15 @@ paths. A drink button now lives under its profile, for example
 
 ### Reporting a problem
 
-Include the adapter version, machine model, selected profile slot, and the
-value of `lan.diagnostics.result`. For a missed drink command, include whether
-the machine had just woken up or reconnected. Keep account details, machine
-serial numbers and LAN keys out of public reports.
+Include the adapter version and machine model. For LAN issues, copy the exact
+values of `info.lan.status` and `info.lan.lastAuthenticatedAt` from the instance.
+`registered` means the machine accepted the callback address, `encrypted` means
+keys were exchanged, and `verified` means authenticated data arrived. If you see
+`register-http-<code>` or another error, include the full status.
+
+For a missed drink command, add the profile slot, `lan.diagnostics.result` and
+whether the machine had just woken up or reconnected. Keep account details,
+machine serial numbers and LAN keys out of public reports.
 
 ## Development
 

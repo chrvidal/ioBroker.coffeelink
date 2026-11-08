@@ -196,6 +196,7 @@ class CoffeeLink extends utils.Adapter {
                 type: 'channel', common: { name: 'Coffee machines' }, native: {},
             });
             let online = false;
+            let lanModelFound = false;
             for (const device of devices) {
                 if (!/^[A-Za-z0-9_-]{1,128}$/.test(device.dsn)) continue;
                 // Stable opaque ID; does not expose full device serial in object IDs.
@@ -213,9 +214,10 @@ class CoffeeLink extends utils.Adapter {
                 await this.state(`${cloud}.online`, 'Machine reachable via cloud', 'boolean', 'indicator.reachable', isOnline);
                 // Identify the LAN counter source before callbacks can arrive.
                 const properties = await this.client.readProperties(device.dsn);
-                if (this.lanReceiver instanceof CoffeeLanSession && !this.lanReceiver.registrationAttempted
-                    && isOnline && supportsSoul(device, properties)
-                    && (!this.activeLanDevice || this.activeLanDevice === root)) {
+                const supportsLan = supportsSoul(device, properties);
+                lanModelFound ||= supportsLan;
+                if (this.lanReceiver instanceof CoffeeLanSession && this.lanReceiver.registrationAttempts === 0
+                    && isOnline && supportsLan && (!this.activeLanDevice || this.activeLanDevice === root)) {
                     try {
                         const access = await this.client.readLanAccess(device.dsn);
                         if (this.stopping) return;
@@ -225,6 +227,7 @@ class CoffeeLink extends utils.Adapter {
                             this.lanReceiver.configure({ dsn: device.dsn, key: access.key, keyId: access.keyId });
                             this.activeLanDevice = root;
                             await this.prepareSoul(root, device, properties);
+                            if (this.stopping) return;
                             // Active mode opts in to registration for one device.
                             // This changes the machine's callback destination; the app may be affected.
                             await this.lanReceiver.registerOnce();
@@ -255,6 +258,10 @@ class CoffeeLink extends utils.Adapter {
                         Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : 'unknown');
                 }
                 await this.migrateDeviceStates(root);
+            }
+            if (this.lanReceiver instanceof CoffeeLanSession && !this.activeLanDevice
+                && devices.length && !lanModelFound) {
+                await this.setLanStatus('unsupported-model');
             }
             await this.setStateAsync('info.connection', { val: online, ack: true });
             await this.setCloudConnected(true);

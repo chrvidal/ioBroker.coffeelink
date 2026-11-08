@@ -98,6 +98,31 @@ test('failed registration reports safe HTTP status without leaking response body
     assert.equal(transport.registered,false);
 });
 
+test('retries an HTTP registration failure after the cooldown', async context => {
+    context.mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 10, 8) });
+    const statuses = [];
+    let attempts = 0;
+    const session = new CoffeeLanSession({
+        host: '192.168.12.33', machineIp: '192.168.12.39',
+        registrationRequestFn: async () => ++attempts === 1 ? { ok: false, status: 503 } : { ok: true, status: 202 },
+        onStatus: status => statuses.push(status),
+    });
+    session.configure({ dsn: 'testdsn', key: 'synthetic-key' });
+    session.server = { listening: true };
+    await session.registerOnce();
+    context.mock.timers.tick(59999);
+    await session.recoverRegistration();
+    assert.equal(attempts, 1);
+    context.mock.timers.tick(1);
+    await session.recoverRegistration();
+    assert.deepEqual(statuses, ['register-http-503', 'registered']);
+    assert.equal(session.lastError, '');
+    context.mock.timers.tick(300000);
+    await session.recoverRegistration();
+    assert.equal(attempts, 3);
+    assert.equal(session.sessionVerified, false);
+});
+
 test('transient registration failures have a bounded budget without leaking details',async()=>{
     const statuses=[];
     const transport=new CoffeeLanSession({
