@@ -9,6 +9,14 @@ const READY = 'd012750f00000000000700000000000000d6a3';
 const READY_SHORT = 'd00d750000000000000700005a3a';
 const BUSY = 'd012750f000000000007040000000000001765';
 const seconds = () => Math.floor(Date.now() / 1000);
+const PROFILE_DRINK_FRAMES = [
+    ['d045_1_rec_cappuccino', 'cappuccino', 'd017a6f001071c0219010100281b0102030900d20400778c', '0d1683f007011c020100281b0102030900d204000667c5'],
+    ['d046_1_rec_latte_macchiato', 'latteMacchiato', 'd017a6f001081c0219010100281b010203090118040015b0', '0d1683f008011c020100281b010203090118040006e325'],
+    ['d047_1_rec_caffelatte', 'caffeLatte', 'd017a6f001091c02190101003c1b01020309011804003cf1', '0d1683f009011c0201003c1b010203090118040006f7bd'],
+    ['d043_1_rec_doppio', 'doppio', 'd010a6f0010519010100781b0104009d76', '0d0f83f005010100781b010400065fb8'],
+    ['d042_1_rec_2x_espresso', 'doubleEspresso', 'd014a6f0010408010100501b01020404001901a47f', '0d1183f004010100501b010204040006e8e3'],
+    ['d053_1_rec_hot_water', 'hotWater', 'd00ea6f0011019010f00641b012c7a', '0d0d83f010010f00641b0106e5e1'],
+];
 const A2_DRINK_PAGES = [
     ['data_request', '0d08a20f0bba015425', 'd00ba20f0bba000000039a0d'],
     ['data_request', '0d08a20f0bbd058d36', 'd023a20f0bbd0000007f0bbe0000261a0bbf000000010bc0000000000bc100000003590c'],
@@ -22,7 +30,7 @@ function properties(hex, timestamp = seconds()) {
     return new Map([[name, { value: value.toString('base64') }]]);
 }
 
-function simulatedSoul(steps) {
+function simulatedSoul(steps, recipes) {
     const session = {
         async exchangeProperty(name, value, { match }) {
             const next = steps.shift();
@@ -52,7 +60,7 @@ function simulatedSoul(steps) {
             throw Error('unconfirmed');
         },
     };
-    return new EcamSoul(session);
+    return new EcamSoul(session, recipes);
 }
 
 test('enables Soul commands only for detected Soul models with the expected properties', () => {
@@ -91,6 +99,38 @@ test('rejects brew when the ready response is busy, stale or CRC-invalid', async
     }
 });
 
+test('prepares the selected profile recipe with its own amounts and no save operation', async () => {
+    for (const [property, action, recipe, command] of PROFILE_DRINK_FRAMES) {
+        const steps = [
+            ['d302_monitor', READY, seconds() - 60],
+            ['data_request', command],
+        ];
+        const recipes = new Map([[property, { value: Buffer.from(recipe, 'hex').toString('base64') }]]);
+        assert.equal(await simulatedSoul(steps, recipes).button(action, { manual: true }), 'sent');
+        assert.equal(steps.length, 0);
+    }
+});
+
+test('does not send a profile drink with an unavailable recipe or a busy machine', async () => {
+    const [property, action, valid] = PROFILE_DRINK_FRAMES[0];
+    for (const recipe of [
+        `${valid.slice(0, -2)}00`, // Bad CRC
+        'd00fa6f0010719020100280900d2b45a',
+        'd00fa6f0020719010100280900d2dd17',
+        'd00fa6f0010819010100280900d2f48c',
+        'd00ea6f00107190101002809000482',
+        'd012a6f0010719010100280100280900d2e7f7',
+        'd00fa6f001071901010000090000356a',
+    ]) {
+        const recipes = new Map([[property, { value: Buffer.from(recipe, 'hex').toString('base64') }]]);
+        await assert.rejects(simulatedSoul([], recipes).button(action, { manual: true }), /recipe-unavailable/);
+    }
+    const recipes = new Map([[property, { value: Buffer.from(valid, 'hex').toString('base64') }]]);
+    const steps = [['d302_monitor', BUSY]];
+    await assert.rejects(simulatedSoul(steps, recipes).button(action, { manual: true }), /machine-not-ready/);
+    assert.equal(steps.length, 0);
+});
+
 test('checks readiness without brewing and accepts a short fresh monitor after a stale reply', async () => {
     const steps = [
         ['data_request', '0d05750fda25', READY, seconds() - 60],
@@ -116,10 +156,10 @@ test('explicit at-machine controls accept a cached idle monitor and reject a cac
         ['d302_monitor', READY_SHORT, timestamp],
         ['data_request', '0d1183f0010101007e1b030202040006afe2'],
     ];
-    assert.equal(await simulatedSoul(ready).button('espressoAtMachine'), 'sent');
+    assert.equal(await simulatedSoul(ready).button('espresso', { manual: true }), 'sent');
     assert.equal(ready.length, 0);
     const busy = [['d302_monitor', BUSY, timestamp]];
-    await assert.rejects(simulatedSoul(busy).button('coffeeAtMachine'), /machine-not-ready/);
+    await assert.rejects(simulatedSoul(busy).button('coffee', { manual: true }), /machine-not-ready/);
     assert.equal(busy.length, 0);
 });
 

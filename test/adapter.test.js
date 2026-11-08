@@ -24,6 +24,9 @@ class AdapterStub extends EventEmitter {
     async getStateAsync(id) {
         return this.states.get(id);
     }
+    async extendObjectAsync(id, object) {
+        Object.assign(this.objects.get(id).common, object.common);
+    }
     async delObjectAsync(id) {
         this.objects.delete(id);
         this.states.delete(id);
@@ -78,7 +81,7 @@ test('creates read-only ioBroker states for connected machine', async () => {
     assert.equal(adapter.objects.get(blackTime).common.write, false);
 });
 
-test('moves legacy Cloud states while preserving canonical values and LAN objects', async () => {
+test('moves legacy Cloud states and removes obsolete LAN buttons while preserving measurements', async () => {
     const adapter = makeAdapter();
     const root = 'machines.synthetic';
     await adapter.channel(`${root}.counters`, 'Old counters');
@@ -89,7 +92,11 @@ test('moves legacy Cloud states while preserving canonical values and LAN object
     await adapter.state(`${root}.status`, 'Status', 'string', 'text', 'ready');
     await adapter.state(`${root}.diagnostics.blackCoffeeCloudUpdatedAt`, 'Last update', 'string', 'text', '2026-10-01');
     await adapter.state(`${root}.lan.counters.coffee`, 'Coffee', 'number', 'value', 19);
-    await adapter.migrateCloudStates(root);
+    await adapter.channel(`${root}.lan.automation`, 'Automation');
+    await adapter.state(`${root}.lan.automation.coffee`, 'Coffee', 'boolean', 'button', true);
+    await adapter.state(`${root}.lan.automation.espresso`, 'Espresso', 'boolean', 'button', true);
+    await adapter.state(`${root}.lan.receivedAt`, 'Old LAN timestamp', 'string', 'text', '2026-11-01');
+    await adapter.migrateDeviceStates(root);
     assert.deepEqual([...adapter.objects.keys()].sort(), [
         `${root}.cloud.counters.coffee`, `${root}.cloud.counters.espresso`, `${root}.cloud.diagnostics.blackCoffeeCloudUpdatedAt`,
         `${root}.cloud.status`, `${root}.lan.counters.coffee`,
@@ -107,22 +114,20 @@ test('cloud failure marks connection false without writing cloud values', async 
     assert.equal(adapter.states.get('info.cloud.connected').val, false);
 });
 
-test('records numeric LAN counters separately from cloud values', async () => {
+test('upgrades read-only LAN without implicitly enabling controls', () => {
     const adapter = makeAdapter();
-    const root = 'machines.synthetic';
-    const receivedAt = '2026-11-07T18:32:47.061Z';
-    await adapter.recordLanCounters(root, new Map([
-        ['d700_tot_bev_b', { value: 42 }],
-        ['d701_tot_bev_bw', { value: '7' }],
-        ['d706_tot_id2_coffee', { value: 'invalid' }],
-    ]), receivedAt);
-    assert.deepEqual(adapter.states.get(`${root}.lan.counters.blackCoffee`), { val: 42, ack: true });
-    assert.deepEqual(adapter.states.get(`${root}.lan.counters.milkCoffee`), { val: 7, ack: true });
-    assert.equal(adapter.objects.get(`${root}.lan.counters.blackCoffee`).common.write, false);
-    assert.equal(adapter.states.get(`${root}.lan.receivedAt`).val, receivedAt);
-    assert.equal(adapter.states.get('info.lan.lastAuthenticatedAt').val, receivedAt);
-    assert.equal(adapter.states.has(`${root}.lan.counters.coffee`), false);
-    assert.equal(adapter.states.has(`${root}.counters.blackCoffee`), false);
+    assert.equal(adapter.lanEnabled, false);
+    Object.assign(adapter.config, { lanReceiverEnabled: true, lanActiveEnabled: true, lanControlEnabled: false, lanEnabled: null });
+    assert.equal(adapter.lanEnabled, true);
+    assert.equal(adapter.lanControlsEnabled, false);
+    adapter.config.lanControlEnabled = true;
+    assert.equal(adapter.lanControlsEnabled, true);
+    adapter.config.lanEnabled = false;
+    assert.equal(adapter.lanEnabled, false);
+    assert.equal(adapter.lanControlsEnabled, false);
+    adapter.config.lanEnabled = true;
+    adapter.config.lanControlEnabled = false;
+    assert.equal(adapter.lanControlsEnabled, true);
 });
 
 test('removes the legacy LAN counters for a Soul and keeps direct statistics as its only source', async () => {
@@ -134,66 +139,73 @@ test('removes the legacy LAN counters for a Soul and keeps direct statistics as 
     await adapter.state(`${root}.lan.counters.blackCoffee`, 'Black coffee', 'number', 'value', 10009);
     await adapter.state(`${root}.lan.statistics.blackCoffee`, 'Black coffee', 'number', 'value', 10077);
     await adapter.removeLegacyLanCounters(root);
-    await adapter.recordLanCounters(root, new Map([['d700_tot_bev_b', { value: 10009 }]]), '2026-11-07T20:35:12.549Z');
     assert.equal(adapter.objects.has(`${root}.lan.counters`), false);
     assert.equal(adapter.states.has(`${root}.lan.counters.blackCoffee`), false);
     assert.equal(adapter.states.get(`${root}.lan.statistics.blackCoffee`).val, 10077);
-    assert.equal(adapter.states.get('info.lan.lastAuthenticatedAt').val, '2026-11-07T20:35:12.549Z');
 });
 
 test('routes only recent, explicit control writes for the opted-in LAN machine', async () => {
     const adapter = makeAdapter();
     adapter.namespace = 'coffeelink.0';
     adapter.activeLanDevice = 'machines.synthetic';
-    const root = 'machines.synthetic.lan.control';
+    const lan = 'machines.synthetic.lan';
+    const root = `${lan}.control`;
+    const drinks = `${root}.drinks`;
+    const automation = `${lan}.automation`;
+    const diagnostics = `${lan}.diagnostics`;
     const calls = [];
     adapter.soul = {
-        button: async name => { calls.push(name); return 'sent'; },
+        button: async (name, { manual }) => { calls.push([name, manual]); return 'sent'; },
         setSetting: async (name, value) => { calls.push([name, value]); return value; },
     };
     const click = { val: true, ack: false, ts: Date.now() };
-    const button = `coffeelink.0.${root}.coffee`;
+    const button = `coffeelink.0.${drinks}.coffee`;
     await adapter.onControlState(button, click);
-    adapter.config.lanControlEnabled = true;
+    adapter.config.lanEnabled = true;
     await adapter.onControlState(button, { ...click, ack: true });
     await adapter.onControlState(button, { ...click, ts: click.ts - 10000 });
-    await adapter.onControlState('coffeelink.0.machines.other.lan.control.coffee', click);
+    await adapter.onControlState('coffeelink.0.machines.other.lan.control.drinks.coffee', click);
+    await adapter.onControlState(`coffeelink.0.${root}.coffee`, click);
+    await adapter.onControlState(`coffeelink.0.${root}.coffeeAtMachine`, click);
+    await adapter.onControlState(`coffeelink.0.${automation}.coffee`, click);
+    await adapter.onControlState(`coffeelink.0.${diagnostics}.off`, click);
     await adapter.onControlState(button, click);
-    assert.deepEqual(calls, ['coffee']);
-    assert.deepEqual(adapter.states.get(`${root}.coffee`), { val: false, ack: true });
-    assert.equal(adapter.states.get(`${root}.result`).val, 'coffee: sent');
+    assert.deepEqual(calls, [['coffee', true]]);
+    assert.deepEqual(adapter.states.get(`${drinks}.coffee`), { val: false, ack: true });
+    assert.equal(adapter.states.get(`${diagnostics}.result`).val, 'control.drinks.coffee: sent');
     await adapter.onControlState(`coffeelink.0.${root}.autoOff`, { val: 1, ack: false, ts: Date.now() });
-    assert.deepEqual(calls, ['coffee', ['autoOff', 1]]);
+    assert.deepEqual(calls, [['coffee', true], ['autoOff', 1]]);
     assert.deepEqual(adapter.states.get(`${root}.autoOff`), { val: 1, ack: true });
-    assert.equal(adapter.states.get(`${root}.autoOffResult`).val, 'confirmed');
-    assert.equal(adapter.states.get(`${root}.result`).val, 'autoOff: confirmed');
+    assert.equal(adapter.states.get(`${diagnostics}.autoOffResult`).val, 'confirmed');
+    assert.equal(adapter.states.get(`${diagnostics}.result`).val, 'autoOff: confirmed');
     adapter.lanReceiver = { sessionVerified: true };
     adapter.soul.readStatistics = async () => ({
         statistics: [{ id: 'blackCoffee', label: 'Black coffee beverages', value: 10075 }], missingPages: [],
     });
-    await adapter.onControlState(`coffeelink.0.${root}.readStatistics`, { ...click, ts: Date.now() });
+    await adapter.onControlState(`coffeelink.0.${diagnostics}.readStatistics`, { ...click, ts: Date.now() });
     assert.equal(adapter.states.get('machines.synthetic.lan.statistics.blackCoffee').val, 10075);
-    assert.equal(adapter.states.get(`${root}.result`).val, 'readStatistics: confirmed');
+    assert.equal(adapter.states.get(`${diagnostics}.result`).val, 'readStatistics: confirmed');
     adapter.soul.readSettings = async () => new Map([['autoOff', 2], ['waterHardness', 1]]);
-    await adapter.onControlState(`coffeelink.0.${root}.readSettings`, { ...click, ts: Date.now() });
+    await adapter.onControlState(`coffeelink.0.${diagnostics}.readSettings`, { ...click, ts: Date.now() });
     assert.deepEqual(adapter.states.get(`${root}.autoOff`), { val: 2, ack: true });
     assert.deepEqual(adapter.states.get(`${root}.waterHardness`), { val: 1, ack: true });
-    assert.equal(adapter.states.get(`${root}.result`).val, 'readSettings: confirmed');
+    assert.equal(adapter.states.get(`${diagnostics}.result`).val, 'readSettings: confirmed');
 });
 
 test('a mismatched setting clears the pending input with the machine value and reports the failure', async () => {
     const adapter = makeAdapter();
     adapter.namespace = 'coffeelink.0';
     adapter.activeLanDevice = 'machines.synthetic';
-    adapter.config.lanControlEnabled = true;
+    adapter.config.lanEnabled = true;
     adapter.soul = { setSetting: async () => {
         throw Object.assign(new Error('setting-readback-mismatch'), { actual: 3 });
     } };
     const root = 'machines.synthetic.lan.control';
+    const diagnostics = 'machines.synthetic.lan.diagnostics';
     await adapter.onControlState(`coffeelink.0.${root}.autoOff`, { val: 1, ack: false, ts: Date.now() });
     assert.deepEqual(adapter.states.get(`${root}.autoOff`), { val: 3, ack: true });
-    assert.equal(adapter.states.get(`${root}.autoOffResult`).val, 'setting-readback-mismatch');
-    assert.equal(adapter.states.get(`${root}.result`).val, 'autoOff: setting-readback-mismatch');
+    assert.equal(adapter.states.get(`${diagnostics}.autoOffResult`).val, 'setting-readback-mismatch');
+    assert.equal(adapter.states.get(`${diagnostics}.result`).val, 'autoOff: setting-readback-mismatch');
 });
 
 test('replaces the old standby control with off', async () => {
@@ -203,7 +215,68 @@ test('replaces the old standby control with off', async () => {
     await adapter.setObjectNotExistsAsync(id, { type: 'state', common: { name: 'Switch to standby', write: true } });
     await adapter.setupControls('machines.synthetic');
     assert.equal(adapter.objects.has(id), false);
-    assert.equal(adapter.objects.get(off).common.name, 'Switch machine off');
+    assert.equal(adapter.objects.get(off).common.name, 'Switch off');
     assert.equal(adapter.objects.get(off).common.write, true);
     assert.deepEqual(adapter.states.get(off), { val: false, ack: true });
+});
+
+test('migrates LAN buttons and results, keeping only direct controls and settings under control', async () => {
+    const adapter = makeAdapter();
+    const root = 'machines.synthetic';
+    const prefix = `${root}.lan.control`;
+    await adapter.channel(prefix, 'ECAM61x LAN control');
+    await adapter.setObjectNotExistsAsync(`${prefix}.coffee`, { type: 'state', common: { name: 'Start coffee (preset)' } });
+    await adapter.setObjectNotExistsAsync(`${prefix}.espresso`, { type: 'state', common: { name: 'My espresso button' } });
+    await adapter.setObjectNotExistsAsync(`${prefix}.wake`, { type: 'state', common: { name: { en: 'Wake machine from standby', de: 'Maschine aus Standby wecken' } } });
+    await adapter.setObjectNotExistsAsync(`${prefix}.coffeeAtMachine`, {
+        type: 'state', common: { name: { en: 'Start coffee (at the machine)', de: 'Kaffee starten (an der Maschine)' } },
+    });
+    for (const id of ['readStatus', 'readSettings', 'readStatistics', 'result', 'autoOffResult', 'waterHardnessResult']) {
+        await adapter.setObjectNotExistsAsync(`${prefix}.${id}`, { type: 'state', common: {} });
+    }
+    await adapter.setStateAsync(`${prefix}.coffee`, { val: true, ack: false });
+    await adapter.setStateAsync(`${prefix}.autoOff`, { val: 2, ack: true });
+    await adapter.setupControls(root);
+    await adapter.setupControls(root);
+    assert.equal(adapter.objects.get(prefix).common.name, 'Controls');
+    assert.equal(adapter.objects.get(`${prefix}.drinks`).common.name, 'Drinks');
+    assert.deepEqual([...adapter.objects.keys()].filter(id => id.startsWith(`${prefix}.`)).map(id => id.slice(prefix.length + 1)).sort(),
+        ['autoOff', 'drinks', 'drinks.coffee', 'drinks.espresso', 'off', 'stopDrink', 'wake', 'waterHardness']);
+    const diagnostics = `${root}.lan.diagnostics`;
+    assert.equal(adapter.objects.has(`${root}.lan.automation`), false);
+    assert.deepEqual(adapter.states.get(`${prefix}.drinks.coffee`), { val: false, ack: true });
+    assert.equal(adapter.objects.get(`${prefix}.wake`).common.name, 'Wake from standby');
+    assert.equal(adapter.objects.get(`${prefix}.drinks.coffee`).common.name, 'Start Coffee');
+    assert.deepEqual(adapter.states.get(`${prefix}.autoOff`), { val: 2, ack: true });
+    for (const id of ['readStatus', 'readSettings', 'readStatistics']) {
+        assert.equal(adapter.objects.get(`${diagnostics}.${id}`).common.role, 'button');
+    }
+    for (const id of ['result', 'autoOffResult', 'waterHardnessResult']) {
+        assert.equal(adapter.objects.get(`${diagnostics}.${id}`).common.write, false);
+    }
+});
+
+test('exposes available profile drinks as direct LAN buttons', async () => {
+    const adapter = makeAdapter();
+    const root = 'machines.synthetic';
+    const cappuccino = `${root}.lan.control.drinks.cappuccino`;
+    const legacy = `${root}.lan.control.cappuccinoAtMachine`;
+    const unavailable = `${root}.lan.control.drinks.caffeLatte`;
+    adapter.activeLanDevice = root;
+    adapter.namespace = 'coffeelink.0';
+    adapter.config.lanEnabled = true;
+    await adapter.setObjectNotExistsAsync(legacy, { type: 'state', common: { name: 'Start Cappuccino (at the machine)' } });
+    await adapter.setObjectNotExistsAsync(unavailable, { type: 'state', common: {} });
+    const recipe = Buffer.from('d017a6f001071c0219010100281b0102030900d20400778c', 'hex').toString('base64');
+    const properties = new Map([['data_request', {}], ['d302_monitor', {}], ['d045_1_rec_cappuccino', { value: recipe }]]);
+    await adapter.prepareSoul(root, { model: 'ECAM612.55' }, properties);
+    assert.equal(adapter.objects.get(cappuccino).common.name, 'Start Cappuccino');
+    assert.equal(adapter.objects.get(cappuccino).common.write, true);
+    assert.equal(adapter.objects.has(unavailable), false);
+    assert.equal(adapter.objects.has(legacy), false);
+    const calls = [];
+    adapter.soul.button = async (action, { manual }) => { calls.push([action, manual]); return 'sent'; };
+    await adapter.onControlState(`${adapter.namespace}.${cappuccino}`, { val: true, ack: false, ts: Date.now() });
+    assert.deepEqual(calls, [['cappuccino', true]]);
+    assert.deepEqual(adapter.states.get(cappuccino), { val: false, ack: true });
 });

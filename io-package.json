@@ -1,17 +1,35 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.0.15",
+    "version": "0.1.0",
     "titleLang": {
       "en": "Coffee Link",
-      "de": "Coffee Link"
+      "de": "Coffee Link",
+      "ru": "Coffee Link",
+      "pt": "Coffee Link",
+      "nl": "Coffee Link",
+      "fr": "Coffee Link",
+      "it": "Coffee Link",
+      "es": "Coffee Link",
+      "pl": "Coffee Link",
+      "uk": "Coffee Link",
+      "zh-cn": "Coffee Link"
     },
     "desc": {
-      "en": "Status, lifetime counters and optional ECAM61x LAN controls for De'Longhi Coffee Link machines",
-      "de": "Status, Zähler und optionale ECAM61x-LAN-Steuerung für De'Longhi Coffee Link"
+      "en": "Read Coffee Link status and counters. Optional LAN statistics and controls for PrimaDonna Soul.",
+      "de": "Status und Zähler aus Coffee Link lesen. Optionale LAN-Statistik und Steuerung für PrimaDonna Soul.",
+      "ru": "Статус и счётчики Coffee Link. Локальная статистика и управление PrimaDonna Soul через LAN.",
+      "pt": "Estado e contadores do Coffee Link. Estatísticas e controlo opcionais por LAN para PrimaDonna Soul.",
+      "nl": "Status en tellers uit Coffee Link. Optionele LAN-statistieken en bediening voor PrimaDonna Soul.",
+      "fr": "État et compteurs de Coffee Link. Statistiques et commandes locales en option pour PrimaDonna Soul.",
+      "it": "Stato e contatori di Coffee Link. Statistiche e comandi LAN opzionali per PrimaDonna Soul.",
+      "es": "Estado y contadores de Coffee Link. Estadísticas y control opcionales por LAN para PrimaDonna Soul.",
+      "pl": "Stan i liczniki Coffee Link. Opcjonalne statystyki i sterowanie PrimaDonna Soul przez LAN.",
+      "uk": "Стан і лічильники Coffee Link. Додаткова статистика та керування PrimaDonna Soul через LAN.",
+      "zh-cn": "读取 Coffee Link 状态和计数。PrimaDonna Soul 可选用局域网统计和控制。"
     },
     "authors": [
-      "chrvidal"
+      "chrvidal <38847087+chrvidal@users.noreply.github.com>"
     ],
     "licenseInformation": {
       "license": "MIT",
@@ -20,7 +38,13 @@
     "tier": 3,
     "icon": "coffeelink.png",
     "extIcon": "https://raw.githubusercontent.com/chrvidal/ioBroker.coffeelink/main/admin/coffeelink.png",
-    "keywords": ["coffee", "DeLonghi", "PrimaDonna", "Coffee Link", "LAN"],
+    "keywords": [
+      "coffee",
+      "DeLonghi",
+      "PrimaDonna",
+      "Coffee Link",
+      "LAN"
+    ],
     "platform": "Javascript/Node.js",
     "mode": "daemon",
     "type": "misc-data",
@@ -43,41 +67,18 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
-      "0.0.15": {
-        "en": "Direct PrimaDonna Soul statistics, optional LAN controls and separate Cloud data",
-        "de": "Direkte PrimaDonna-Soul-Statistik, optionale LAN-Steuerung und getrennte Cloud-Daten"
-      },
-      "0.0.8": {
-        "en": "Use ECAM612-confirmed Node HTTP/1.1 registration headers instead of fetch",
-        "de": "LAN-Registrierung mit getesteter Node HTTP/1.1-Anfrage statt fetch"
-      },
-      "0.0.7": {
-        "en": "Use real-device accepted LAN registration with notify:0; keep LAN opt-in",
-        "de": "LAN-Registrierung mit auf echter ECAM612 bestätigtem notify:0; LAN bleibt optional"
-      },
-      "0.0.6": {
-        "en": "Use tested ECAM612 POST registration with DSN for opt-in LAN reading",
-        "de": "Optionale LAN-Registrierung via POST und Gerätekennung für ECAM612"
-      },
-      "0.0.5": {
-        "en": "Show safe LAN registration failure diagnostics",
-        "de": "Fehlercode der LAN-Registrierung anzeigen"
-      },
-      "0.0.4": {
-        "en": "Opt-in encrypted LAN reader for ECAM612, with isolated local counters",
-        "de": "Optionaler verschluesselter LAN-Lesetest fuer ECAM612 mit separaten lokalen Zaehlern"
-      },
-      "0.0.3": {
-        "en": "Experimental passive LAN HTTP receiver; no device registration or writes",
-        "de": "Experimenteller passiver LAN-HTTP-Empfaenger; keine Geraeteregistrierung oder Schreibzugriffe"
-      },
-      "0.0.2": {
-        "en": "Add read-only last-cloud-change timestamps for coffee and milk totals",
-        "de": "Zeitpunkte der letzten Cloud-Änderung für Kaffee- und Milchzähler anzeigen"
-      },
-      "0.0.1": {
-        "en": "Initial read-only development version",
-        "de": "Erste lesende Entwicklungsversion"
+      "0.1.0": {
+        "en": "Simpler LAN setup and a separate Drinks folder. Adds recipes for milk drinks and other presets.",
+        "de": "Einfachere LAN-Einrichtung und eigener Getränkeordner. Neue Rezepte für Milchgetränke und weitere Spezialitäten.",
+        "ru": "Упрощена настройка LAN. Добавлена папка напитков с рецептами молочных и других напитков.",
+        "pt": "Configuração LAN simplificada e pasta de bebidas com receitas de leite e outras opções.",
+        "nl": "Eenvoudigere LAN-instellingen en een map met recepten voor melkdranken en andere dranken.",
+        "fr": "Configuration LAN simplifiée et dossier de boissons avec recettes lactées et autres boissons.",
+        "it": "Configurazione LAN semplificata e cartella delle bevande con ricette al latte e altre preparazioni.",
+        "es": "Configuración LAN más sencilla y carpeta de bebidas con recetas de leche y otras opciones.",
+        "pl": "Prostsza konfiguracja LAN i folder napojów z przepisami na kawy mleczne i inne napoje.",
+        "uk": "Простіше налаштування LAN і папка напоїв із рецептами молочних та інших напоїв.",
+        "zh-cn": "简化局域网设置，新增饮品文件夹，支持奶咖及其他饮品配方。"
       }
     }
   },
@@ -85,12 +86,10 @@
     "email": "",
     "password": "",
     "pollInterval": 15,
-    "lanReceiverEnabled": false,
-    "lanListenAddress": "127.0.0.1",
-    "lanListenPort": 10275,
+    "lanEnabled": null,
     "lanMachineIp": "",
-    "lanActiveEnabled": false,
-    "lanControlEnabled": false
+    "bind": null,
+    "port": null
   },
   "encryptedNative": [
     "password"

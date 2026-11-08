@@ -5,6 +5,12 @@ on:
     branches: [main]
     tags: ['v[0-9]+.[0-9]+.[0-9]+', 'v[0-9]+.[0-9]+.[0-9]+-**']
   pull_request: {}
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the selected version tag to npm
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -58,3 +64,26 @@ jobs:
         if: runner.os == 'Windows'
         timeout-minutes: 8
         run: npm.cmd run test:integration -- --exit
+
+  deploy:
+    needs: [check-and-lint, adapter-tests]
+    if: github.repository == 'chrvidal/ioBroker.coffeelink' && github.ref_type == 'tag' && (vars.NPM_PUBLISH_ENABLED == 'true' || inputs.publish)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Verify release tag
+        run: node -e 'if (process.env.GITHUB_REF_NAME !== "v" + require("./package.json").version) process.exit(1)'
+      - name: Publish to npm
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

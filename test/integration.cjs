@@ -22,7 +22,7 @@ tests.integration(path.join(__dirname, '..'), {
                 }
                 assert.equal((await getState('cloud.connected'))?.val, false);
                 assert.equal((await getState('lan.status'))?.val, 'disabled');
-                assert.equal((await getState('lanListener'))?.val, false);
+                assert.ok(!(await getState('lanListener')));
             });
         });
     },

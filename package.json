@@ -1,8 +1,8 @@
 {
   "name": "iobroker.coffeelink",
-  "version": "0.0.15",
-  "description": "Cloud data, LAN statistics and optional ECAM61x LAN controls for DeLonghi Coffee Link",
-  "author": "chrvidal",
+  "version": "0.1.0",
+  "description": "Read Coffee Link status and counters. Optional LAN statistics and controls for PrimaDonna Soul.",
+  "author": "chrvidal <38847087+chrvidal@users.noreply.github.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -36,7 +36,7 @@
     "test": "node --test \"test/*.test.js\"",
     "test:package": "mocha test/package.cjs",
     "test:integration": "mocha test/integration.cjs",
-    "check": "node --check main.js && node --check lib/cloud-client.js && node --check lib/measurements.js && node --check lib/lan-receiver.js && node --check lib/lan-protocol.js && node --check lib/lan-session.js && node --check lib/ecam-soul.js && npm test"
+    "check": "node --check main.js && node --check lib/cloud-client.js && node --check lib/measurements.js && node --check lib/lan-protocol.js && node --check lib/lan-session.js && node --check lib/ecam-soul.js && npm test"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.4.3"

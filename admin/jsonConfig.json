@@ -4,23 +4,33 @@
   "items": {
     "introduction": {
       "type": "staticText",
-      "text": "Unofficial Coffee Link adapter. Cloud access is read-only. ECAM61x controls are optional and use LAN.",
+      "text": "Read machine status and counters from Coffee Link.",
       "newLine": true,
-      "sm": 12
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
     },
     "email": {
       "type": "text",
       "label": "Coffee Link email",
       "newLine": true,
+      "xs": 12,
       "sm": 12,
-      "xs": 12
+      "md": 12,
+      "lg": 12,
+      "xl": 12
     },
     "password": {
       "type": "password",
       "label": "Coffee Link password",
       "newLine": true,
+      "xs": 12,
       "sm": 12,
-      "xs": 12
+      "md": 12,
+      "lg": 12,
+      "xl": 12
     },
     "pollInterval": {
       "type": "number",
@@ -29,60 +39,63 @@
       "max": 1440,
       "step": 1,
       "newLine": true,
-      "sm": 6,
-      "xs": 12
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
+    },
+    "lanEnabled": {
+      "type": "checkbox",
+      "label": "Enable LAN",
+      "newLine": true,
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
     },
     "lanNote": {
       "type": "staticText",
-      "text": "EXPERIMENTAL: Passive local receiver only. No device registration or commands until active mode is explicitly enabled.",
+      "text": "LAN adds local statistics and controls for PrimaDonna Soul machines. Connecting may interrupt the Coffee Link app's local connection.",
       "newLine": true,
-      "sm": 12
-    },
-    "lanReceiverEnabled": {
-      "type": "checkbox",
-      "label": "Enable passive LAN receiver (experimental)",
-      "newLine": true,
-      "sm": 12
-    },
-    "lanListenAddress": {
-      "type": "text",
-      "label": "LAN bind IP (use 127.0.0.1 for local-only test)",
-      "newLine": true,
-      "sm": 6,
-      "xs": 12
-    },
-    "lanListenPort": {
-      "type": "number",
-      "label": "LAN listener port",
-      "min": 1024,
-      "max": 65535,
-      "newLine": false,
-      "sm": 6,
-      "xs": 12
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
     },
     "lanMachineIp": {
       "type": "text",
-      "label": "Expected machine LAN IP (required for callback logging)",
+      "label": "Coffee machine IP address",
       "newLine": true,
-      "sm": 12
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
     },
-    "lanActiveWarning": {
-      "type": "staticText",
-      "text": "ACHTUNG: Active LAN mode sends POST /local_reg.json?dsn=... with notify:0. This can affect the official Coffee Link app local connection. HTTP 202 means registration accepted, not necessarily encrypted or live counters.",
+    "bind": {
+      "type": "text",
+      "label": "ioBroker LAN IPv4 address",
       "newLine": true,
-      "sm": 12
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
     },
-    "lanActiveEnabled": {
-      "type": "checkbox",
-      "label": "EXPERIMENTAL: Register this adapter as LAN client (may affect Coffee Link app)",
+    "port": {
+      "type": "number",
+      "label": "LAN callback port",
+      "min": 1024,
+      "max": 65535,
       "newLine": true,
-      "sm": 12
-    },
-    "lanControlEnabled": {
-      "type": "checkbox",
-      "label": "Enable ECAM61x LAN controls (drinks, standby and settings)",
-      "newLine": true,
-      "sm": 12
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
     }
   }
 }

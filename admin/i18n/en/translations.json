@@ -1,7 +1,11 @@
 {
-  "Unofficial Coffee Link adapter. Cloud access is read-only. ECAM61x controls are optional and use LAN.": "Unofficial Coffee Link adapter. Cloud access is read-only. ECAM61x controls are optional and use LAN.",
-  "Enable ECAM61x LAN controls (drinks, standby and settings)": "Enable ECAM61x LAN controls (drinks, standby and settings)",
+  "Read machine status and counters from Coffee Link.": "Read machine status and counters from Coffee Link.",
   "Coffee Link email": "Coffee Link email",
   "Coffee Link password": "Coffee Link password",
-  "Polling interval (minutes)": "Polling interval (minutes)"
+  "Polling interval (minutes)": "Polling interval (minutes)",
+  "Enable LAN": "Enable LAN",
+  "LAN adds local statistics and controls for PrimaDonna Soul machines. Connecting may interrupt the Coffee Link app's local connection.": "LAN adds local statistics and controls for PrimaDonna Soul machines. Connecting may interrupt the Coffee Link app's local connection.",
+  "Coffee machine IP address": "Coffee machine IP address",
+  "ioBroker LAN IPv4 address": "ioBroker LAN IPv4 address",
+  "LAN callback port": "LAN callback port"
 }
