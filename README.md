@@ -7,7 +7,7 @@ direct statistics and local controls on PrimaDonna Soul machines.
 
 ## Installation and test releases
 
-Once available on npm, install the adapter with `iobroker add coffeelink`.
+Install the published npm package with `iobroker add coffeelink`.
 
 Preview builds and release notes are available on the
 [GitHub releases page](https://github.com/chrvidal/ioBroker.coffeelink/releases).
@@ -172,6 +172,11 @@ Older releases are documented in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 Unindent this heading when adding changes for the next release:
     ### **WORK IN PROGRESS**
 -->
+
+### 0.2.5
+
+- Remove GitHub-only preview versions from the ioBroker update metadata.
+- Keep their development history in this README and CHANGELOG_OLD.md.
 
 ### 0.2.4
 
