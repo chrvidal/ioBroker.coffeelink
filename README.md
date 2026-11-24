@@ -152,7 +152,8 @@ npm run test:integration
 This adapter runs plain JavaScript and JSON configuration directly; no compilation
 or frontend build is required.
 
-For future releases, use `npm run release patch`. The release tooling updates
+For future releases, add a `### **WORK IN PROGRESS**` changelog section with the
+actual changes, commit them, and use `npm run release patch`. The release tooling updates
 package versions and release notes together. Version tags trigger the test matrix
 and, after it passes, the official ioBroker deploy action. npm Trusted Publishing
 requires a publisher configured for GitHub user `chrvidal`, repository
@@ -166,6 +167,11 @@ and [aioecam's statistics references](https://github.com/Styx85/aioecam/blob/60c
 ## Changelog
 
 Older releases are documented in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
+
+<!--
+Placeholder for the next version (at the beginning of the line):
+### **WORK IN PROGRESS**
+-->
 
 ### 0.2.4
 
