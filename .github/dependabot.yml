@@ -4,6 +4,8 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     ignore:
       # Match the minimum supported Node.js version.
       - dependency-name: '@types/node'

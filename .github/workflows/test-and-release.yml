@@ -65,7 +65,7 @@ jobs:
         if: runner.os == 'Windows'
         timeout-minutes: 8
         env:
-          DEBUG: 'testing:integration:*'
+          DEBUG: 'testing:*'
         run: npm.cmd run test:integration -- --exit
 
   deploy:

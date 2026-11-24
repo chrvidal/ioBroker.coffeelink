@@ -1,5 +1,5 @@
 {
-  "plugins": ["iobroker"],
+  "plugins": ["iobroker", "license"],
   "addPlaceholder": true,
   "exec": {
     "before_commit": "npm run lint && npm run check && npm run test:package"
