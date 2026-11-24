@@ -17,7 +17,9 @@ tests.integration(path.join(__dirname, '..'), {
                 const getState = id => harness.states.getStateAsync(`coffeelink.0.info.${id}`);
                 // ioBroker marks the process alive before its ready handler finishes.
                 for (let attempt = 0; attempt < 25; attempt++) {
-                    if ((await getState('lan.status'))?.val === 'disabled') break;
+                    if ((await getState('lan.status'))?.val === 'disabled') {
+                        break;
+                    }
                     await delay(200);
                 }
                 assert.equal((await getState('cloud.connected'))?.val, false);

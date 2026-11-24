@@ -26,6 +26,7 @@ jobs:
       - uses: ioBroker/testing-action-check@v2
         with:
           node-version: 22
+          lint: true
 
   adapter-tests:
     needs: check-and-lint
@@ -69,10 +70,10 @@ jobs:
 
   deploy:
     needs: [check-and-lint, adapter-tests]
-    if: github.repository == 'chrvidal/ioBroker.coffeelink' && github.ref_type == 'tag' && (vars.NPM_PUBLISH_ENABLED == 'true' || inputs.publish)
+    if: github.repository == 'chrvidal/ioBroker.coffeelink' && github.ref_type == 'tag' && (github.event_name == 'push' || inputs.publish)
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v6
@@ -85,7 +86,30 @@ jobs:
           package-manager-cache: false
       - name: Verify release tag
         run: node -e 'if (process.env.GITHUB_REF_NAME !== "v" + require("./package.json").version) process.exit(1)'
-      - name: Publish to npm
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Check whether this version was already published
+        id: npm
+        shell: bash
+        run: |
+          VERSION=$(node -p 'require("./package.json").version')
+          if npm view "iobroker.coffeelink@$VERSION" version > /tmp/npm-version.txt 2> /tmp/npm-error.txt; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          elif grep -q 'E404' /tmp/npm-error.txt; then
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            cat /tmp/npm-error.txt
+            exit 1
+          fi
+      - name: Publish with npm Trusted Publishing
+        if: steps.npm.outputs.published == 'false'
+        uses: ioBroker/testing-action-deploy@v1
+        with:
+          node-version: 24
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Ensure GitHub release for a manually published version
+        if: steps.npm.outputs.published == 'true'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

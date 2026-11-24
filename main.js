@@ -18,7 +18,11 @@ const BUTTON_NAMES = {
 };
 const LAN_GROUPS = {
     control: { name: 'Controls', oldName: 'ECAM61x LAN control', buttons: ['wake', 'off', 'stopDrink'] },
-    diagnostics: { name: 'Diagnostics', oldName: 'LAN diagnostics', buttons: ['readStatus', 'readSettings', 'readStatistics'] },
+    diagnostics: {
+        name: 'Diagnostics',
+        oldName: 'LAN diagnostics',
+        buttons: ['readStatus', 'readSettings', 'readStatistics'],
+    },
 };
 const OLD_BUTTON_NAMES = Object.freeze({
     wake: ['wake from standby (lan required)', 'wake machine from standby'],
@@ -29,7 +33,11 @@ const CLOUD_DIAGNOSTICS = [
     ['milkCoffeeCloudUpdatedAt', 'd701_tot_bev_bw', 'Coffee-with-milk total'],
 ];
 const LEGACY_CLOUD_STATES = [
-    'online', 'status', 'lastKnownStatus', 'statusFresh', 'statusUpdatedAt',
+    'online',
+    'status',
+    'lastKnownStatus',
+    'statusFresh',
+    'statusUpdatedAt',
     ...COUNTERS.map(([id]) => `counters.${id}`),
     ...CLOUD_DIAGNOSTICS.map(([id]) => `diagnostics.${id}`),
 ];
@@ -59,7 +67,9 @@ class CoffeeLink extends utils.Adapter {
     }
 
     get lanEnabled() {
-        return this.config.lanEnabled ?? (this.config.lanReceiverEnabled === true && this.config.lanActiveEnabled === true);
+        return (
+            this.config.lanEnabled ?? (this.config.lanReceiverEnabled === true && this.config.lanActiveEnabled === true)
+        );
     }
 
     get lanControlsEnabled() {
@@ -78,14 +88,18 @@ class CoffeeLink extends utils.Adapter {
             native: {},
         });
         for (const id of ['info.lanListener', 'info.lanLastContact', 'info.lanStatus']) {
-            if ((await this.getObjectAsync(id))?.type === 'state') await this.delObjectAsync(id);
+            if ((await this.getObjectAsync(id))?.type === 'state') {
+                await this.delObjectAsync(id);
+            }
         }
         await this.setLanStatus('disabled');
         if (this.lanEnabled) {
             try {
                 const machineIp = this.config.lanMachineIp?.trim() || '';
                 const host = await lanAddressFor(machineIp);
-                if (this.stopping) return;
+                if (this.stopping) {
+                    return;
+                }
                 const previousPort = this.config.port ?? this.config.lanListenPort;
                 this.lanReceiver = new CoffeeLanSession({
                     host,
@@ -94,14 +108,18 @@ class CoffeeLink extends utils.Adapter {
                     onProperties: (_properties, receivedAt) => {
                         if (!this.stopping && this.activeLanDevice) {
                             this.lanUpdates = this.lanUpdates
-                                .then(() => this.setStateAsync('info.lan.lastAuthenticatedAt', { val: receivedAt, ack: true }))
+                                .then(() =>
+                                    this.setStateAsync('info.lan.lastAuthenticatedAt', { val: receivedAt, ack: true }),
+                                )
                                 .catch(() => this.log.warn('Could not update LAN activity'));
                         }
                     },
                     onStatus: status => {
                         if (!this.stopping) {
                             void this.setLanStatus(status).catch(() => this.log.warn('Could not update LAN status'));
-                            if (status === 'verified') void this.refreshStatistics();
+                            if (status === 'verified') {
+                                void this.refreshStatistics();
+                            }
                         }
                     },
                 });
@@ -109,7 +127,9 @@ class CoffeeLink extends utils.Adapter {
                 await this.setLanStatus('waiting-for-machine');
             } catch (error) {
                 this.log.warn(`LAN listener unavailable: ${error.message}`);
-                if (this.lanReceiver) await this.lanReceiver.stop();
+                if (this.lanReceiver) {
+                    await this.lanReceiver.stop();
+                }
                 this.lanReceiver = null;
                 await this.setLanStatus('listener-unavailable');
             }
@@ -121,7 +141,9 @@ class CoffeeLink extends utils.Adapter {
         this.client = new CoffeeCloudClient({ email: this.config.email, password: this.config.password });
         const minutes = Math.min(1440, Math.max(5, Number(this.config.pollInterval) || 15));
         // Even when the first connection fails, the next scheduled attempt can recover.
-        this.pollTimer = this.setInterval(() => { void this.refresh(); }, minutes * 60000);
+        this.pollTimer = this.setInterval(() => {
+            void this.refresh();
+        }, minutes * 60000);
         await this.refresh();
     }
 
@@ -142,7 +164,13 @@ class CoffeeLink extends utils.Adapter {
     }
 
     setCloudConnected(value) {
-        return this.state('info.cloud.connected', 'Cloud API reachable at last sync', 'boolean', 'indicator.connected', value);
+        return this.state(
+            'info.cloud.connected',
+            'Cloud API reachable at last sync',
+            'boolean',
+            'indicator.connected',
+            value,
+        );
     }
 
     setLanStatus(status) {
@@ -150,13 +178,17 @@ class CoffeeLink extends utils.Adapter {
     }
 
     async migrateDeviceStates(root) {
-        if (this.migratedDevices.has(root)) return;
+        if (this.migratedDevices.has(root)) {
+            return;
+        }
         for (const id of LEGACY_CLOUD_STATES) {
             const oldId = `${root}.${id}`;
             const legacy = await this.getObjectAsync(oldId);
-            if (legacy?.type !== 'state') continue;
+            if (legacy?.type !== 'state') {
+                continue;
+            }
             const newId = `${root}.cloud.${id}`;
-            if (!await this.getStateAsync(newId)) {
+            if (!(await this.getStateAsync(newId))) {
                 const previous = await this.getStateAsync(oldId);
                 if (previous?.ack === true) {
                     const { name, type, role } = legacy.common;
@@ -167,38 +199,55 @@ class CoffeeLink extends utils.Adapter {
         }
         for (const branch of ['counters', 'diagnostics']) {
             const id = `${root}.${branch}`;
-            if ((await this.getObjectAsync(id))?.type === 'channel') await this.delObjectAsync(id);
+            if ((await this.getObjectAsync(id))?.type === 'channel') {
+                await this.delObjectAsync(id);
+            }
         }
         const obsoleteLanStates = [
-            'lan.receivedAt', 'lan.automation.coffee', 'lan.automation.espresso', 'lan.diagnostics.readCoffeeRecipe',
+            'lan.receivedAt',
+            'lan.automation.coffee',
+            'lan.automation.espresso',
+            'lan.diagnostics.readCoffeeRecipe',
             ...DRINK_BUTTONS.map(id => `lan.control.drinks.${id}`),
         ];
         for (const path of obsoleteLanStates) {
             const id = `${root}.${path}`;
-            if ((await this.getObjectAsync(id))?.type === 'state') await this.delObjectAsync(id);
+            if ((await this.getObjectAsync(id))?.type === 'state') {
+                await this.delObjectAsync(id);
+            }
         }
         for (const path of ['lan.automation', 'lan.control.drinks']) {
             const id = `${root}.${path}`;
-            if ((await this.getObjectAsync(id))?.type === 'channel') await this.delObjectAsync(id);
+            if ((await this.getObjectAsync(id))?.type === 'channel') {
+                await this.delObjectAsync(id);
+            }
         }
         this.migratedDevices.add(root);
     }
 
     async refresh() {
-        if (this.stopping || !this.client || this.busy) return;
+        if (this.stopping || !this.client || this.busy) {
+            return;
+        }
         this.busy = true;
         try {
-            if (this.lanReceiver instanceof CoffeeLanSession) this.lanReceiver.refreshCounters();
+            if (this.lanReceiver instanceof CoffeeLanSession) {
+                this.lanReceiver.refreshCounters();
+            }
             void this.refreshStatistics();
             const devices = (await this.client.listDevices()).slice(0, DEVICE_LIMIT);
             await this.state('info.deviceCount', 'Coffee Link devices', 'number', 'value', devices.length);
             await this.setObjectNotExistsAsync('machines', {
-                type: 'channel', common: { name: 'Coffee machines' }, native: {},
+                type: 'channel',
+                common: { name: 'Coffee machines' },
+                native: {},
             });
             let online = false;
             let lanModelFound = false;
             for (const device of devices) {
-                if (!/^[A-Za-z0-9_-]{1,128}$/.test(device.dsn)) continue;
+                if (!/^[A-Za-z0-9_-]{1,128}$/.test(device.dsn)) {
+                    continue;
+                }
                 // Stable opaque ID; does not expose full device serial in object IDs.
                 const id = `d${createHash('sha256').update(device.dsn).digest('hex').slice(0, 12)}`;
                 const root = `machines.${id}`;
@@ -211,23 +260,38 @@ class CoffeeLink extends utils.Adapter {
                 });
                 const cloud = `${root}.cloud`;
                 await this.channel(cloud, 'Cloud', 'Cloud data (read-only)');
-                await this.state(`${cloud}.online`, 'Machine reachable via cloud', 'boolean', 'indicator.reachable', isOnline);
+                await this.state(
+                    `${cloud}.online`,
+                    'Machine reachable via cloud',
+                    'boolean',
+                    'indicator.reachable',
+                    isOnline,
+                );
                 // Identify the LAN counter source before callbacks can arrive.
                 const properties = await this.client.readProperties(device.dsn);
                 const supportsLan = supportsSoul(device, properties);
                 lanModelFound ||= supportsLan;
-                if (this.lanReceiver instanceof CoffeeLanSession && this.lanReceiver.registrationAttempts === 0
-                    && isOnline && supportsLan && (!this.activeLanDevice || this.activeLanDevice === root)) {
+                if (
+                    this.lanReceiver instanceof CoffeeLanSession &&
+                    this.lanReceiver.registrationAttempts === 0 &&
+                    isOnline &&
+                    supportsLan &&
+                    (!this.activeLanDevice || this.activeLanDevice === root)
+                ) {
                     try {
                         const access = await this.client.readLanAccess(device.dsn);
-                        if (this.stopping) return;
+                        if (this.stopping) {
+                            return;
+                        }
                         if (!access.enabled || !access.key) {
                             await this.setLanStatus('no-lan-key');
                         } else {
                             this.lanReceiver.configure({ dsn: device.dsn, key: access.key, keyId: access.keyId });
                             this.activeLanDevice = root;
                             await this.prepareSoul(root, device, properties);
-                            if (this.stopping) return;
+                            if (this.stopping) {
+                                return;
+                            }
                             // Active mode opts in to registration for one device.
                             // This changes the machine's callback destination; the app may be affected.
                             await this.lanReceiver.registerOnce();
@@ -236,13 +300,39 @@ class CoffeeLink extends utils.Adapter {
                         await this.setLanStatus('connection-failed');
                     }
                 }
-                if (this.activeLanDevice === root) await this.prepareSoul(root, device, properties);
+                if (this.activeLanDevice === root) {
+                    await this.prepareSoul(root, device, properties);
+                }
                 // The API can return stale monitor packets while the cloud says Online.
                 const monitor = latestMonitor(properties);
-                await this.state(`${cloud}.status`, 'Machine status (stale if not updated)', 'string', 'text', monitor.status);
-                await this.state(`${cloud}.lastKnownStatus`, 'Last known machine status', 'string', 'text', monitor.lastKnown);
-                await this.state(`${cloud}.statusFresh`, 'Machine status is current', 'boolean', 'indicator', monitor.fresh);
-                await this.state(`${cloud}.statusUpdatedAt`, 'Monitor last updated at (UTC)', 'string', 'text', monitor.updatedAt);
+                await this.state(
+                    `${cloud}.status`,
+                    'Machine status (stale if not updated)',
+                    'string',
+                    'text',
+                    monitor.status,
+                );
+                await this.state(
+                    `${cloud}.lastKnownStatus`,
+                    'Last known machine status',
+                    'string',
+                    'text',
+                    monitor.lastKnown,
+                );
+                await this.state(
+                    `${cloud}.statusFresh`,
+                    'Machine status is current',
+                    'boolean',
+                    'indicator',
+                    monitor.fresh,
+                );
+                await this.state(
+                    `${cloud}.statusUpdatedAt`,
+                    'Monitor last updated at (UTC)',
+                    'string',
+                    'text',
+                    monitor.updatedAt,
+                );
                 await this.channel(`${cloud}.counters`, 'Counters', 'Cloud counters');
                 for (const item of getCounters(properties)) {
                     await this.state(`${cloud}.counters.${item.id}`, item.name, 'number', 'value', item.value);
@@ -253,14 +343,22 @@ class CoffeeLink extends utils.Adapter {
                 for (const [key, source, label] of CLOUD_DIAGNOSTICS) {
                     const raw = properties.get(source)?.data_updated_at;
                     const timestamp = typeof raw === 'string' ? Date.parse(raw) : NaN;
-                    await this.state(`${cloud}.diagnostics.${key}`,
-                        `${label} last cloud change (UTC)`, 'string', 'text',
-                        Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : 'unknown');
+                    await this.state(
+                        `${cloud}.diagnostics.${key}`,
+                        `${label} last cloud change (UTC)`,
+                        'string',
+                        'text',
+                        Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : 'unknown',
+                    );
                 }
                 await this.migrateDeviceStates(root);
             }
-            if (this.lanReceiver instanceof CoffeeLanSession && !this.activeLanDevice
-                && devices.length && !lanModelFound) {
+            if (
+                this.lanReceiver instanceof CoffeeLanSession &&
+                !this.activeLanDevice &&
+                devices.length &&
+                !lanModelFound
+            ) {
                 await this.setLanStatus('unsupported-model');
             }
             await this.setStateAsync('info.connection', { val: online, ack: true });
@@ -276,28 +374,40 @@ class CoffeeLink extends utils.Adapter {
     }
 
     async prepareSoul(root, device, properties) {
-        if (this.soul || !supportsSoul(device, properties)) return;
+        if (this.soul || !supportsSoul(device, properties)) {
+            return;
+        }
         const soul = new EcamSoul(this.lanReceiver, properties);
         const machine = await this.getObjectAsync(root);
         if (machine?.common?.name === 'Coffee Link machine') {
             await this.extendObjectAsync(root, { common: { name: 'PrimaDonna Soul' } });
         }
         await this.channel(`${root}.lan`, 'LAN', 'Experimental local LAN data');
-        if (this.lanControlsEnabled) await this.setupControls(root, soul);
+        if (this.lanControlsEnabled) {
+            await this.setupControls(root, soul);
+        }
         this.soul = soul;
         const previous = await this.getStateAsync(`${root}.lan.statistics.blackCoffee`);
-        if (previous?.ack === true && typeof previous.val === 'number') await this.removeLegacyLanCounters(root);
+        if (previous?.ack === true && typeof previous.val === 'number') {
+            await this.removeLegacyLanCounters(root);
+        }
         void this.refreshStatistics();
     }
 
     async removeLegacyLanCounters(device) {
-        if (this.removedLegacyLanCounters) return;
+        if (this.removedLegacyLanCounters) {
+            return;
+        }
         const branch = `${device}.lan.counters`;
         for (const [id] of COUNTERS) {
             const oldId = `${branch}.${id}`;
-            if ((await this.getObjectAsync(oldId))?.type === 'state') await this.delObjectAsync(oldId);
+            if ((await this.getObjectAsync(oldId))?.type === 'state') {
+                await this.delObjectAsync(oldId);
+            }
         }
-        if ((await this.getObjectAsync(branch))?.type === 'channel') await this.delObjectAsync(branch);
+        if ((await this.getObjectAsync(branch))?.type === 'channel') {
+            await this.delObjectAsync(branch);
+        }
         this.removedLegacyLanCounters = true;
     }
 
@@ -319,23 +429,32 @@ class CoffeeLink extends utils.Adapter {
             const previousName = profile ? (await this.getObjectAsync(channelId))?.common?.name : oldName;
             await this.channel(channelId, label, previousName !== label ? previousName : undefined);
             for (const id of buttons) {
-                if (group === 'diagnostics') obsolete.push(id);
+                if (group === 'diagnostics') {
+                    obsolete.push(id);
+                }
                 const stateId = `${lan}.${group}.${id}`;
                 if (Object.hasOwn(PROFILE_DRINK_BUTTONS, id) && !profileDrinks?.has(id)) {
-                    if ((await this.getObjectAsync(stateId))?.type === 'state') await this.delObjectAsync(stateId);
+                    if ((await this.getObjectAsync(stateId))?.type === 'state') {
+                        await this.delObjectAsync(stateId);
+                    }
                     continue;
                 }
                 const existing = await this.getObjectAsync(stateId);
-                const previous = existing || (group === 'diagnostics' && await this.getObjectAsync(`${control}.${id}`));
+                const previous =
+                    existing || (group === 'diagnostics' && (await this.getObjectAsync(`${control}.${id}`)));
                 const previousName = previous?.common?.name;
                 const defaultName = BUTTON_NAMES[id];
-                const previousEnglish = (typeof previousName === 'string' ? previousName : previousName?.en)?.toLowerCase();
+                const previousEnglish = (
+                    typeof previousName === 'string' ? previousName : previousName?.en
+                )?.toLowerCase();
                 const expectedName = defaultName.toLowerCase();
-                const previousWasDefault = previousEnglish === expectedName
-                    || OLD_BUTTON_NAMES[id]?.includes(previousEnglish);
+                const previousWasDefault =
+                    previousEnglish === expectedName || OLD_BUTTON_NAMES[id]?.includes(previousEnglish);
                 const name = previousName && !previousWasDefault ? previousName : defaultName;
                 await this.setObjectNotExistsAsync(stateId, {
-                    type: 'state', common: { name, type: 'boolean', role: 'button', read: true, write: true, def: false }, native: {},
+                    type: 'state',
+                    common: { name, type: 'boolean', role: 'button', read: true, write: true, def: false },
+                    native: {},
                 });
                 if (existing && name !== previousName) {
                     await this.extendObjectAsync(stateId, { common: { name } });
@@ -345,7 +464,9 @@ class CoffeeLink extends utils.Adapter {
         }
         for (const [id, { label, options }] of Object.entries(SETTINGS)) {
             await this.setObjectNotExistsAsync(`${control}.${id}`, {
-                type: 'state', common: { name: label, type: 'number', role: 'level', read: true, write: true, states: options }, native: {},
+                type: 'state',
+                common: { name: label, type: 'number', role: 'level', read: true, write: true, states: options },
+                native: {},
             });
             await this.state(`${diagnostics}.${id}Result`, `${label} write result`, 'string', 'text', 'idle');
             obsolete.push(`${id}Result`);
@@ -353,31 +474,49 @@ class CoffeeLink extends utils.Adapter {
         await this.state(`${diagnostics}.result`, 'Last LAN request result', 'string', 'text', 'idle');
         for (const id of obsolete) {
             const stateId = `${control}.${id}`;
-            if ((await this.getObjectAsync(stateId))?.type === 'state') await this.delObjectAsync(stateId);
+            if ((await this.getObjectAsync(stateId))?.type === 'state') {
+                await this.delObjectAsync(stateId);
+            }
         }
         for (const group of Object.keys(LAN_GROUPS)) {
-            if (!group.includes('.')) this.subscribeStates(`${lan}.${group}.*`);
+            if (!group.includes('.')) {
+                this.subscribeStates(`${lan}.${group}.*`);
+            }
         }
     }
 
     async onControlState(id, state) {
-        if (this.stopping || !this.lanControlsEnabled || !this.soul || !state || state.ack !== false) return;
-        if (!Number.isFinite(state.ts) || Math.abs(Date.now() - state.ts) > 5000) return;
+        if (this.stopping || !this.lanControlsEnabled || !this.soul || !state || state.ack !== false) {
+            return;
+        }
+        if (!Number.isFinite(state.ts) || Math.abs(Date.now() - state.ts) > 5000) {
+            return;
+        }
         const lan = `${this.activeLanDevice}.lan`;
         const fullPrefix = `${this.namespace}.${lan}.`;
-        if (!id.startsWith(fullPrefix)) return;
+        if (!id.startsWith(fullPrefix)) {
+            return;
+        }
         const path = id.slice(fullPrefix.length);
         const separator = path.lastIndexOf('.');
-        if (separator === -1) return;
+        if (separator === -1) {
+            return;
+        }
         const group = path.slice(0, separator);
         const action = path.slice(separator + 1);
         const profileMatch = /^control\.profiles\.profile([1-5])$/.exec(group);
         const profile = profileMatch ? Number(profileMatch[1]) : undefined;
-        if (profile && !this.soul.profileNames?.has(profile)) return;
+        if (profile && !this.soul.profileNames?.has(profile)) {
+            return;
+        }
         const buttons = profile ? DRINK_BUTTONS : Object.hasOwn(LAN_GROUPS, group) && LAN_GROUPS[group].buttons;
-        if (!buttons) return;
+        if (!buttons) {
+            return;
+        }
         const button = buttons.includes(action);
-        if (button ? state.val !== true : group !== 'control' || !Object.hasOwn(SETTINGS, action)) return;
+        if (button ? state.val !== true : group !== 'control' || !Object.hasOwn(SETTINGS, action)) {
+            return;
+        }
 
         const stateId = `${lan}.${path}`;
         if (profile && this.drinkPending) {
@@ -387,20 +526,38 @@ class CoffeeLink extends utils.Adapter {
         const control = `${lan}.control`;
         const diagnostics = `${lan}.diagnostics`;
         const commandId = ++this.controlCommandId;
-        if (!button) this.settingCommandIds.set(action, commandId);
+        if (!button) {
+            this.settingCommandIds.set(action, commandId);
+        }
         // Enqueue synchronously to preserve arrival order and allow Stop to preempt.
-        const operation = action === 'readStatistics' ? this.refreshStatistics({ manual: true })
-            : action === 'readSettings' ? this.readControlSettings(control)
-                : button ? this.soul.button(action, { profile }) : this.soul.setSetting(action, state.val);
-        const result = operation.then(value => ({ value }),
-            error => ({ error: error.name === 'AbortError' ? 'cancelled' : error.message, actual: error.actual }));
-        if (profile) this.drinkPending = true;
+        const operation =
+            action === 'readStatistics'
+                ? this.refreshStatistics({ manual: true })
+                : action === 'readSettings'
+                  ? this.readControlSettings(control)
+                  : button
+                    ? this.soul.button(action, { profile })
+                    : this.soul.setSetting(action, state.val);
+        const result = operation.then(
+            value => ({ value }),
+            error => ({ error: error.name === 'AbortError' ? 'cancelled' : error.message, actual: error.actual }),
+        );
+        if (profile) {
+            this.drinkPending = true;
+        }
         try {
-            if (profile) await this.setStateAsync(`${diagnostics}.result`, { val: `${path}: pending`, ack: true });
-            if (button) await this.setStateAsync(stateId, { val: false, ack: true });
-            else await this.setStateAsync(`${diagnostics}.${action}Result`, { val: 'pending', ack: true });
+            if (profile) {
+                await this.setStateAsync(`${diagnostics}.result`, { val: `${path}: pending`, ack: true });
+            }
+            if (button) {
+                await this.setStateAsync(stateId, { val: false, ack: true });
+            } else {
+                await this.setStateAsync(`${diagnostics}.${action}Result`, { val: 'pending', ack: true });
+            }
             const outcome = await result;
-            if (this.stopping) return;
+            if (this.stopping) {
+                return;
+            }
             if (profile && outcome.error && outcome.error !== 'cancelled') {
                 this.log.warn(`Drink command ${path}: ${outcome.error}`);
             }
@@ -408,53 +565,95 @@ class CoffeeLink extends utils.Adapter {
                 this.log.debug(`Machine setting ${action}: ${outcome.error}`);
             }
             if (!button && this.settingCommandIds.get(action) === commandId) {
-                await this.setStateAsync(stateId, { val: outcome.error ? outcome.actual ?? null : outcome.value, ack: true });
-                await this.setStateAsync(`${diagnostics}.${action}Result`, { val: outcome.error || 'confirmed', ack: true });
+                await this.setStateAsync(stateId, {
+                    val: outcome.error ? (outcome.actual ?? null) : outcome.value,
+                    ack: true,
+                });
+                await this.setStateAsync(`${diagnostics}.${action}Result`, {
+                    val: outcome.error || 'confirmed',
+                    ack: true,
+                });
             }
-            if (commandId !== this.controlCommandId) return;
+            if (commandId !== this.controlCommandId) {
+                return;
+            }
             const request = profile ? path : action;
-            await this.setStateAsync(`${diagnostics}.result`, { val: `${request}: ${outcome.error || (button ? outcome.value : 'confirmed')}`, ack: true });
+            await this.setStateAsync(`${diagnostics}.result`, {
+                val: `${request}: ${outcome.error || (button ? outcome.value : 'confirmed')}`,
+                ack: true,
+            });
         } finally {
-            if (profile) this.drinkPending = false;
+            if (profile) {
+                this.drinkPending = false;
+            }
         }
     }
 
     async readControlSettings(prefix) {
         const values = await this.soul.readSettings();
-        if (this.stopping) return 'session-ended';
+        if (this.stopping) {
+            return 'session-ended';
+        }
         for (const [name, value] of values) {
             await this.setStateAsync(`${prefix}.${name}`, { val: value, ack: true });
         }
-        if (values.size === Object.keys(SETTINGS).length) return 'confirmed';
+        if (values.size === Object.keys(SETTINGS).length) {
+            return 'confirmed';
+        }
         return values.size ? 'partial' : 'unconfirmed';
     }
 
     async refreshStatistics({ manual = false } = {}) {
-        if (this.stopping || !this.soul || !this.lanReceiver?.sessionVerified) return 'lan-unavailable';
-        if (this.statisticsPending) return 'busy';
+        if (this.stopping || !this.soul || !this.lanReceiver?.sessionVerified) {
+            return 'lan-unavailable';
+        }
+        if (this.statisticsPending) {
+            return 'busy';
+        }
         const device = this.activeLanDevice;
         const root = `${device}.lan.statistics`;
         this.statisticsPending = true;
         try {
             const { statistics, missingPages } = await this.soul.readStatistics();
-            if (this.stopping) return 'session-ended';
+            if (this.stopping) {
+                return 'session-ended';
+            }
             if (missingPages.length) {
                 this.log[manual ? 'warn' : 'debug'](`Machine statistics pages unconfirmed: ${missingPages.join(', ')}`);
             }
-            if (!statistics.length) return 'unconfirmed';
+            if (!statistics.length) {
+                return 'unconfirmed';
+            }
             await this.channel(root, 'Statistics', 'Machine display statistics (ECAM A2)');
             for (const { id, label, value, unit } of statistics) {
                 const name = `${root}.${id}`;
                 await this.setObjectNotExistsAsync(name, {
-                    type: 'state', common: { name: label, type: 'number', role: 'value', read: true, write: false, unit }, native: {},
+                    type: 'state',
+                    common: { name: label, type: 'number', role: 'value', read: true, write: false, unit },
+                    native: {},
                 });
                 await this.setStateAsync(name, { val: value, ack: true });
             }
-            await this.state(`${root}.receivedAt`, 'Last machine statistics response (UTC)', 'string', 'text', new Date().toISOString());
-            if (statistics.some(({ id }) => id === 'blackCoffee')) await this.removeLegacyLanCounters(device);
+            await this.state(
+                `${root}.receivedAt`,
+                'Last machine statistics response (UTC)',
+                'string',
+                'text',
+                new Date().toISOString(),
+            );
+            if (statistics.some(({ id }) => id === 'blackCoffee')) {
+                await this.removeLegacyLanCounters(device);
+            }
             return missingPages.length ? 'partial' : 'confirmed';
         } catch (error) {
-            const safeStatuses = ['busy', 'cancelled', 'session-ended', 'lan-unavailable', 'not-delivered', 'unconfirmed'];
+            const safeStatuses = [
+                'busy',
+                'cancelled',
+                'session-ended',
+                'lan-unavailable',
+                'not-delivered',
+                'unconfirmed',
+            ];
             const status = safeStatuses.includes(error.message) ? error.message : 'failed';
             if (!this.stopping && !['busy', 'cancelled'].includes(status)) {
                 this.log[manual || status === 'failed' ? 'warn' : 'debug'](`Machine statistics: ${status}`);
@@ -468,8 +667,12 @@ class CoffeeLink extends utils.Adapter {
     async onUnload(callback) {
         try {
             this.stopping = true;
-            if (this.pollTimer) this.clearInterval(this.pollTimer);
-            if (this.lanReceiver) await this.lanReceiver.stop();
+            if (this.pollTimer) {
+                this.clearInterval(this.pollTimer);
+            }
+            if (this.lanReceiver) {
+                await this.lanReceiver.stop();
+            }
             await this.lanUpdates;
             await this.setStateAsync('info.connection', { val: false, ack: true });
             await this.setLanStatus('disabled');

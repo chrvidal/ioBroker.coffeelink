@@ -17,9 +17,13 @@ test('converts valid black and milk drink counters only', () => {
         ['d556_water_hardness', { value: '96874' }],
         ['d553_water_tot_qty', { value: '0' }],
     ]);
-    assert.deepEqual(getCounters(props).map(x => [x.id, x.value]), [
-        ['coffee', 42], ['latteMacchiato', 12],
-    ]);
+    assert.deepEqual(
+        getCounters(props).map(x => [x.id, x.value]),
+        [
+            ['coffee', 42],
+            ['latteMacchiato', 12],
+        ],
+    );
 });
 
 test('rejects malformed, negative, decimal and unsafe counter values', () => {

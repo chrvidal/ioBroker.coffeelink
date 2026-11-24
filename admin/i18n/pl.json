@@ -1,0 +1,9 @@
+{
+    "Coffee Link email": "Coffee Link email",
+    "Coffee Link password": "Coffee Link password",
+    "Coffee machine IP address": "Coffee machine IP address",
+    "Enable LAN": "Enable LAN",
+    "LAN adds local statistics and controls for PrimaDonna Soul machines. Connecting may interrupt the Coffee Link app's local connection.": "LAN umożliwia lokalny odczyt statystyk i sterowanie ekspresami PrimaDonna Soul. Nawiązanie połączenia może przerwać lokalne połączenie aplikacji Coffee Link.",
+    "Polling interval (minutes)": "Polling interval (minutes)",
+    "Read machine status and counters from Coffee Link.": "Odczytaj stan i liczniki ekspresu z Coffee Link."
+}

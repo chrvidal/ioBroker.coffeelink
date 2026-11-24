@@ -5,7 +5,9 @@ direct statistics and local controls on PrimaDonna Soul machines.
 
 [De'Longhi Coffee Link machines](https://www.delonghi.com/)
 
-## Test releases
+## Installation and test releases
+
+Once available on npm, install the adapter with `iobroker add coffeelink`.
 
 Preview builds and release notes are available on the
 [GitHub releases page](https://github.com/chrvidal/ioBroker.coffeelink/releases).
@@ -65,7 +67,11 @@ Cloud totals can lag behind the values on the machine. Use LAN statistics
 to compare with the totals on the machine display. If a statistics refresh
 only returns some pages, the adapter keeps the previous values for the
 missing pages and reports a partial result.
-Drink counts shown by the adapter are machine totals.
+Drink counts shown by the adapter are machine totals. Cloud maintenance counters
+can differ from the machine: on the reference ECAM612.55, the cloud filter count
+was 0 while the LAN statistics reported 35. Prefer `lan.statistics.filters` for
+the filter total. The meaning of the cloud grounds counter has not been verified;
+do not assume that it counts the same events as `lan.statistics.grounds`.
 
 ### Controls
 
@@ -137,16 +143,37 @@ Node.js 22.19 or later is required.
 
 ```sh
 npm ci
+npm run lint
 npm run check
 npm run test:package
 npm run test:integration
 ```
+
+This adapter runs plain JavaScript and JSON configuration directly; no compilation
+or frontend build is required.
+
+For future releases, use `npm run release patch`. The release tooling updates
+package versions and release notes together. Version tags trigger the test matrix
+and, after it passes, the official ioBroker deploy action. npm Trusted Publishing
+requires a publisher configured for GitHub user `chrvidal`, repository
+`ioBroker.coffeelink`, workflow `test-and-release.yml` (no environment). The first
+npm version must be published interactively before configuring that publisher.
 
 The LAN implementation uses the
 [PrimaDonna Soul protocol notes](https://github.com/Styx85/cremaevolution-ha/blob/main/docs/ecam-lan-protocol.md)
 and [aioecam's statistics references](https://github.com/Styx85/aioecam/blob/60c980f4584ec4085c185977d74f986ea7f08c41/src/aioecam/ecam/statistics.py).
 
 ## Changelog
+
+Older releases are documented in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
+
+### 0.2.4
+
+- Add shared ioBroker lint checks, updated test tools and dependency updates.
+- Enable tag-triggered npm Trusted Publishing and GitHub releases after successful tests.
+- Support a manually published first version without attempting to publish it twice.
+- Add consistent release tooling and retain older release notes separately.
+- Categorize the adapter under household devices.
 
 ### 0.2.3
 
@@ -172,25 +199,6 @@ and [aioecam's statistics references](https://github.com/Styx85/aioecam/blob/60c
   session change during recipe preparation.
 - Report pending drink requests and ignore repeat presses while a request is active.
 - Remove the old Drinks folder and the default drink-profile setting.
-
-### 0.1.1
-
-- Select the ioBroker host address from the route to the coffee machine.
-- Use the default callback port for new installations and retain custom ports on upgrade.
-- Show the machine IP address field only when LAN is enabled.
-
-### 0.1.0
-
-- Use a single switch for LAN statistics and controls.
-- Group manual drink buttons in `lan.control.drinks` and remove the separate Automation branch.
-- Add PrimaDonna Soul recipe buttons for milk drinks, Doppio+ and other presets.
-- Keep Cloud and LAN values separate and remove duplicate LAN diagnostics.
-
-### 0.0.15
-
-- Read PrimaDonna Soul statistics directly over LAN.
-- Add optional controls with setting readback and retry transient LAN registration failures.
-- Add package validation and an ioBroker installation and startup test.
 
 ## License
 

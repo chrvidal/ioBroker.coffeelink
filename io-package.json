@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.2.3",
+    "version": "0.2.4",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link",
@@ -47,7 +47,7 @@
     ],
     "platform": "Javascript/Node.js",
     "mode": "daemon",
-    "type": "misc-data",
+    "type": "household",
     "compact": true,
     "enabled": false,
     "connectionType": "cloud",
@@ -67,6 +67,19 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
+      "0.2.4": {
+        "en": "Add shared lint checks and prepare trusted npm publishing with consistent releases.",
+        "de": "Ergänzt gemeinsame Lint-Prüfungen und bereitet npm Trusted Publishing mit konsistenten Releases vor.",
+        "ru": "Добавлены общие проверки кода и подготовлена доверенная публикация npm с согласованными релизами.",
+        "pt": "Adiciona verificações de código e prepara a publicação de confiança no npm com versões consistentes.",
+        "nl": "Voegt gedeelde lintcontroles toe en bereidt vertrouwd publiceren op npm met consistente releases voor.",
+        "fr": "Ajoute des contrôles de code et prépare la publication npm de confiance avec des versions cohérentes.",
+        "it": "Aggiunge controlli del codice e prepara la pubblicazione npm attendibile con versioni coerenti.",
+        "es": "Añade comprobaciones de código y prepara la publicación de confianza en npm con versiones coherentes.",
+        "pl": "Dodaje wspólne kontrole kodu i przygotowuje zaufane publikowanie npm ze spójnymi wydaniami.",
+        "uk": "Додає спільні перевірки коду та готує довірену публікацію npm з узгодженими випусками.",
+        "zh-cn": "添加共享代码检查，并准备具有一致版本的 npm 可信发布。"
+      },
       "0.2.3": {
         "en": "Retry undelivered LAN setting changes and verify changes after a lost acknowledgement.",
         "de": "Wiederholt nicht zugestellte LAN-Einstellbefehle und liest den Wert bei fehlender Bestätigung zurück.",

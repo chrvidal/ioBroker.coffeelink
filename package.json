@@ -1,6 +1,6 @@
 {
   "name": "iobroker.coffeelink",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Read Coffee Link status and counters. Optional LAN statistics and controls for PrimaDonna Soul.",
   "author": "chrvidal <christian_vidal@icloud.com>",
   "license": "MIT",
@@ -19,6 +19,7 @@
     "admin/",
     "io-package.json",
     "README.md",
+    "CHANGELOG_OLD.md",
     "LICENSE"
   ],
   "engines": {
@@ -36,12 +37,25 @@
     "test": "node --test \"test/*.test.js\"",
     "test:package": "mocha test/package.cjs",
     "test:integration": "mocha test/integration.cjs",
-    "check": "node --check main.js && node --check lib/cloud-client.js && node --check lib/measurements.js && node --check lib/lan-protocol.js && node --check lib/lan-session.js && node --check lib/ecam-soul.js && npm test"
+    "check": "node --check main.js && node --check lib/cloud-client.js && node --check lib/measurements.js && node --check lib/lan-protocol.js && node --check lib/lan-session.js && node --check lib/ecam-soul.js && npm test",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
+    "release": "release-script",
+    "translate": "translate-adapter"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.4.3"
   },
   "devDependencies": {
-    "@iobroker/testing": "^6.3.0"
+    "@alcalzone/release-script": "^5.2.1",
+    "@alcalzone/release-script-plugin-iobroker": "^5.2.0",
+    "@iobroker/adapter-dev": "^1.5.0",
+    "@iobroker/eslint-config": "^2.3.4",
+    "@iobroker/testing": "^6.3.3",
+    "@types/node": "^22.20.5",
+    "eslint": "^9.39.5"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
