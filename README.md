@@ -169,8 +169,8 @@ and [aioecam's statistics references](https://github.com/Styx85/aioecam/blob/60c
 Older releases are documented in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
 <!--
-Placeholder for the next version (at the beginning of the line):
-### **WORK IN PROGRESS**
+Unindent this heading when adding changes for the next release:
+    ### **WORK IN PROGRESS**
 -->
 
 ### 0.2.4
