@@ -173,7 +173,12 @@ Unindent this heading when adding changes for the next release:
     ### **WORK IN PROGRESS**
 -->
 
-### 0.2.5
+### 0.2.6
+
+- Use Intel macOS runners for all supported Node.js versions during arm64 runner capacity constraints.
+- Keep update metadata limited to npm releases and use the token-free Trusted Publishing path.
+
+### 0.2.5 (GitHub CI candidate; not published to npm)
 
 - Remove GitHub-only preview versions from the ioBroker update metadata.
 - Keep their development history in this README and CHANGELOG_OLD.md.

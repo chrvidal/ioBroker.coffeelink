@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.2.5",
+    "version": "0.2.6",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link",
@@ -67,18 +67,18 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
-      "0.2.5": {
-        "en": "Remove unpublished preview versions from update metadata.",
-        "de": "Entfernt unveröffentlichte Testversionen aus den Update-Metadaten.",
-        "ru": "Удалены неопубликованные тестовые версии из метаданных обновлений.",
-        "pt": "Remove versões de teste não publicadas dos metadados de atualização.",
-        "nl": "Verwijdert niet-gepubliceerde testversies uit de updatemetadata.",
-        "fr": "Supprime les versions de test non publiées des métadonnées de mise à jour.",
-        "it": "Rimuove le versioni di prova non pubblicate dai metadati degli aggiornamenti.",
-        "es": "Elimina versiones de prueba no publicadas de los metadatos de actualización.",
-        "pl": "Usuwa nieopublikowane wersje testowe z metadanych aktualizacji.",
-        "uk": "Видаляє неопубліковані тестові версії з метаданих оновлень.",
-        "zh-cn": "从更新元数据中移除未发布的测试版本。"
+      "0.2.6": {
+        "en": "Clean up unpublished preview metadata and use Intel macOS CI runners.",
+        "de": "Bereinigt unveröffentlichte Testversions-Metadaten und nutzt Intel-macOS-Runner in CI.",
+        "ru": "Удалены метаданные неопубликованных тестовых версий; CI использует macOS Intel.",
+        "pt": "Limpa metadados de versões de teste não publicadas e usa executores macOS Intel no CI.",
+        "nl": "Ruimt metadata van niet-gepubliceerde testversies op en gebruikt Intel-macOS-runners in CI.",
+        "fr": "Nettoie les métadonnées des versions de test non publiées et utilise macOS Intel en CI.",
+        "it": "Rimuove i metadati delle versioni di prova non pubblicate e usa macOS Intel in CI.",
+        "es": "Limpia metadatos de versiones de prueba no publicadas y usa macOS Intel en CI.",
+        "pl": "Usuwa metadane nieopublikowanych wersji testowych i używa macOS Intel w CI.",
+        "uk": "Видаляє метадані неопублікованих тестових версій і використовує macOS Intel у CI.",
+        "zh-cn": "清理未发布测试版本的元数据，并在 CI 中使用 Intel macOS 运行器。"
       },
       "0.2.4": {
         "en": "Add shared lint checks and prepare trusted npm publishing with consistent releases.",
