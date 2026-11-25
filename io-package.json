@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.2.4",
+    "version": "0.2.6",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link",
@@ -67,6 +67,19 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
+      "0.2.6": {
+        "en": "Clean up unpublished preview metadata and use Intel macOS CI runners.",
+        "de": "Bereinigt unveröffentlichte Testversions-Metadaten und nutzt Intel-macOS-Runner in CI.",
+        "ru": "Удалены метаданные неопубликованных тестовых версий; CI использует macOS Intel.",
+        "pt": "Limpa metadados de versões de teste não publicadas e usa executores macOS Intel no CI.",
+        "nl": "Ruimt metadata van niet-gepubliceerde testversies op en gebruikt Intel-macOS-runners in CI.",
+        "fr": "Nettoie les métadonnées des versions de test non publiées et utilise macOS Intel en CI.",
+        "it": "Rimuove i metadati delle versioni di prova non pubblicate e usa macOS Intel in CI.",
+        "es": "Limpia metadatos de versiones de prueba no publicadas y usa macOS Intel en CI.",
+        "pl": "Usuwa metadane nieopublikowanych wersji testowych i używa macOS Intel w CI.",
+        "uk": "Видаляє метадані неопублікованих тестових версій і використовує macOS Intel у CI.",
+        "zh-cn": "清理未发布测试版本的元数据，并在 CI 中使用 Intel macOS 运行器。"
+      },
       "0.2.4": {
         "en": "Add shared lint checks and prepare trusted npm publishing with consistent releases.",
         "de": "Ergänzt gemeinsame Lint-Prüfungen und bereitet npm Trusted Publishing mit konsistenten Releases vor.",
@@ -79,84 +92,6 @@
         "pl": "Dodaje wspólne kontrole kodu i przygotowuje zaufane publikowanie npm ze spójnymi wydaniami.",
         "uk": "Додає спільні перевірки коду та готує довірену публікацію npm з узгодженими випусками.",
         "zh-cn": "添加共享代码检查，并准备具有一致版本的 npm 可信发布。"
-      },
-      "0.2.3": {
-        "en": "Retry undelivered LAN setting changes and verify changes after a lost acknowledgement.",
-        "de": "Wiederholt nicht zugestellte LAN-Einstellbefehle und liest den Wert bei fehlender Bestätigung zurück.",
-        "ru": "Повторяет недоставленные изменения настроек по LAN и проверяет значение при отсутствии подтверждения.",
-        "pt": "Repete alterações de configuração LAN não entregues e confirma o valor quando falta a resposta.",
-        "nl": "Herhaalt niet-afgeleverde LAN-instellingen en leest de waarde terug als de bevestiging uitblijft.",
-        "fr": "Renvoie les modifications de réglage non transmises et vérifie la valeur en l’absence de confirmation.",
-        "it": "Ripete le modifiche alle impostazioni LAN non consegnate e verifica il valore se manca la conferma.",
-        "es": "Reintenta los cambios de configuración LAN no entregados y comprueba el valor si falta la confirmación.",
-        "pl": "Ponawia niedostarczone zmiany ustawień przez LAN i odczytuje wartość przy braku potwierdzenia.",
-        "uk": "Повторює недоставлені зміни налаштувань через LAN і зчитує значення, якщо підтвердження відсутнє.",
-        "zh-cn": "重试未送达的局域网设置命令，并在未收到确认时回读设置值。"
-      },
-      "0.2.2": {
-        "en": "Log unanswered automatic statistics reads at debug level.",
-        "de": "Ausbleibende Antworten bei automatischen Statistikabrufen stehen jetzt im Debug-Log.",
-        "ru": "Отсутствие ответа при автоматическом чтении статистики записывается в журнал отладки.",
-        "pt": "As leituras automáticas de estatísticas sem resposta passam a ser registadas no nível de depuração.",
-        "nl": "Automatische statistiekverzoeken zonder antwoord worden op debugniveau gelogd.",
-        "fr": "Les lectures automatiques de statistiques sans réponse passent dans le journal de débogage.",
-        "it": "Le letture automatiche delle statistiche senza risposta vengono registrate a livello di debug.",
-        "es": "Las consultas automáticas de estadísticas sin respuesta se registran en el nivel de depuración.",
-        "pl": "Brak odpowiedzi na automatyczny odczyt statystyk trafia do dziennika debugowania.",
-        "uk": "Відсутність відповіді на автоматичне читання статистики записується до журналу налагодження.",
-        "zh-cn": "自动读取统计数据未收到响应时，仅记录调试日志。"
-      },
-      "0.2.1": {
-        "en": "Reconnect to PrimaDonna Soul after a LAN interruption or power loss.",
-        "de": "Stellt die LAN-Verbindung zur PrimaDonna Soul nach einer Unterbrechung oder einem Stromausfall wieder her.",
-        "ru": "Восстановление подключения к PrimaDonna Soul по локальной сети после обрыва связи или отключения питания.",
-        "pt": "Restabelece a ligação à PrimaDonna Soul após uma interrupção da rede local ou uma falha de energia.",
-        "nl": "Herstelt de LAN-verbinding met de PrimaDonna Soul na een netwerkonderbreking of stroomuitval.",
-        "fr": "Rétablit la connexion locale à la PrimaDonna Soul après une interruption du réseau ou une coupure de courant.",
-        "it": "Ripristina la connessione locale alla PrimaDonna Soul dopo un'interruzione di rete o di corrente.",
-        "es": "Restablece la conexión local con la PrimaDonna Soul tras un corte de red o de corriente.",
-        "pl": "Przywraca połączenie z PrimaDonna Soul po przerwie w działaniu sieci lokalnej lub zasilania.",
-        "uk": "Відновлює локальне з’єднання з PrimaDonna Soul після збою мережі або відключення живлення.",
-        "zh-cn": "在局域网中断或断电后重新连接 PrimaDonna Soul。"
-      },
-      "0.2.0": {
-        "en": "Named profile folders, saved drink recipes and retries for interrupted LAN reads.",
-        "de": "Benannte Profilordner, gespeicherte Getränkerezepte und Wiederholungen bei unterbrochenen LAN-Abrufen.",
-        "ru": "Именованные папки профилей, сохранённые рецепты и повтор прерванных запросов по LAN.",
-        "pt": "Pastas de perfis com nomes, receitas guardadas e repetição de leituras LAN interrompidas.",
-        "nl": "Mappen met profielnamen, opgeslagen recepten en nieuwe pogingen bij onderbroken LAN-uitlezingen.",
-        "fr": "Dossiers par profil, recettes enregistrées et reprise des lectures interrompues sur le réseau local.",
-        "it": "Cartelle per profilo, ricette salvate e nuovi tentativi per le letture LAN interrotte.",
-        "es": "Carpetas por perfil, recetas guardadas y reintentos de lecturas LAN interrumpidas.",
-        "pl": "Foldery nazwanych profili, zapisane przepisy i ponawianie przerwanych odczytów LAN.",
-        "uk": "Іменовані папки профілів, збережені рецепти й повтор перерваних запитів через LAN.",
-        "zh-cn": "按名称显示用户配置，使用已保存的饮品配方，并重试中断的局域网读取。"
-      },
-      "0.1.1": {
-        "en": "Detect the ioBroker LAN address automatically and remove manual callback settings.",
-        "de": "Die ioBroker-LAN-Adresse automatisch ermitteln und die Callback-Einstellungen ausblenden.",
-        "ru": "Автоматический выбор LAN-адреса ioBroker и упрощённые настройки подключения.",
-        "pt": "Deteção automática do endereço LAN do ioBroker e configuração de ligação simplificada.",
-        "nl": "Automatische detectie van het LAN-adres van ioBroker en eenvoudigere verbindingsinstellingen.",
-        "fr": "Détection automatique de l’adresse LAN d’ioBroker et configuration de connexion simplifiée.",
-        "it": "Rilevamento automatico dell’indirizzo LAN di ioBroker e configurazione di rete semplificata.",
-        "es": "Detección automática de la dirección LAN de ioBroker y configuración de red simplificada.",
-        "pl": "Automatyczne wykrywanie adresu LAN ioBroker i prostsza konfiguracja połączenia.",
-        "uk": "Автоматичний вибір LAN-адреси ioBroker і спрощені налаштування підключення.",
-        "zh-cn": "自动选择 ioBroker 局域网地址，简化本地连接设置。"
-      },
-      "0.1.0": {
-        "en": "Simpler LAN setup and a separate Drinks folder. Adds recipes for milk drinks and other presets.",
-        "de": "Einfachere LAN-Einrichtung und eigener Getränkeordner. Neue Rezepte für Milchgetränke und weitere Spezialitäten.",
-        "ru": "Упрощена настройка LAN. Добавлена папка напитков с рецептами молочных и других напитков.",
-        "pt": "Configuração LAN simplificada e pasta de bebidas com receitas de leite e outras opções.",
-        "nl": "Eenvoudigere LAN-instellingen en een map met recepten voor melkdranken en andere dranken.",
-        "fr": "Configuration LAN simplifiée et dossier de boissons avec recettes lactées et autres boissons.",
-        "it": "Configurazione LAN semplificata e cartella delle bevande con ricette al latte e altre preparazioni.",
-        "es": "Configuración LAN más sencilla y carpeta de bebidas con recetas de leche y otras opciones.",
-        "pl": "Prostsza konfiguracja LAN i folder napojów z przepisami na kawy mleczne i inne napoje.",
-        "uk": "Простіше налаштування LAN і папка напоїв із рецептами молочних та інших напоїв.",
-        "zh-cn": "简化局域网设置，新增饮品文件夹，支持奶咖及其他饮品配方。"
       }
     }
   },

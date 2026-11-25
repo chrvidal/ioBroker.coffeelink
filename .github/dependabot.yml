@@ -4,6 +4,15 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
+    ignore:
+      # Match the minimum supported Node.js version.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # The shared ioBroker config currently depends on ESLint 9 peer packages.
+      - dependency-name: eslint
+        update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
     schedule:

@@ -7,7 +7,7 @@ direct statistics and local controls on PrimaDonna Soul machines.
 
 ## Installation and test releases
 
-Once available on npm, install the adapter with `iobroker add coffeelink`.
+Install the published npm package with `iobroker add coffeelink`.
 
 Preview builds and release notes are available on the
 [GitHub releases page](https://github.com/chrvidal/ioBroker.coffeelink/releases).
@@ -152,7 +152,8 @@ npm run test:integration
 This adapter runs plain JavaScript and JSON configuration directly; no compilation
 or frontend build is required.
 
-For future releases, use `npm run release patch`. The release tooling updates
+For future releases, add a `### **WORK IN PROGRESS**` changelog section with the
+actual changes, commit them, and use `npm run release patch`. The release tooling updates
 package versions and release notes together. Version tags trigger the test matrix
 and, after it passes, the official ioBroker deploy action. npm Trusted Publishing
 requires a publisher configured for GitHub user `chrvidal`, repository
@@ -166,6 +167,21 @@ and [aioecam's statistics references](https://github.com/Styx85/aioecam/blob/60c
 ## Changelog
 
 Older releases are documented in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
+
+<!--
+Unindent this heading when adding changes for the next release:
+    ### **WORK IN PROGRESS**
+-->
+
+### 0.2.6
+
+- Use Intel macOS runners for all supported Node.js versions during arm64 runner capacity constraints.
+- Keep update metadata limited to npm releases and use the token-free Trusted Publishing path.
+
+### 0.2.5 (GitHub CI candidate; not published to npm)
+
+- Remove GitHub-only preview versions from the ioBroker update metadata.
+- Keep their development history in this README and CHANGELOG_OLD.md.
 
 ### 0.2.4
 
