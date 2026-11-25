@@ -173,6 +173,11 @@ Unindent this heading when adding changes for the next release:
     ### **WORK IN PROGRESS**
 -->
 
+### 0.2.7
+
+- Correct the machines container to a folder so devices precede channels.
+- Create command buttons as write-only and migrate existing buttons without changing their IDs or personal settings.
+
 ### 0.2.6
 
 - Use Intel macOS runners for all supported Node.js versions during arm64 runner capacity constraints.

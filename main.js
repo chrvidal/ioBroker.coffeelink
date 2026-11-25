@@ -238,10 +238,13 @@ class CoffeeLink extends utils.Adapter {
             const devices = (await this.client.listDevices()).slice(0, DEVICE_LIMIT);
             await this.state('info.deviceCount', 'Coffee Link devices', 'number', 'value', devices.length);
             await this.setObjectNotExistsAsync('machines', {
-                type: 'channel',
+                type: 'folder',
                 common: { name: 'Coffee machines' },
                 native: {},
             });
+            if ((await this.getObjectAsync('machines'))?.type === 'channel') {
+                await this.extendObjectAsync('machines', { type: 'folder' });
+            }
             let online = false;
             let lanModelFound = false;
             for (const device of devices) {
@@ -453,11 +456,11 @@ class CoffeeLink extends utils.Adapter {
                 const name = previousName && !previousWasDefault ? previousName : defaultName;
                 await this.setObjectNotExistsAsync(stateId, {
                     type: 'state',
-                    common: { name, type: 'boolean', role: 'button', read: true, write: true, def: false },
+                    common: { name, type: 'boolean', role: 'button', read: false, write: true, def: false },
                     native: {},
                 });
-                if (existing && name !== previousName) {
-                    await this.extendObjectAsync(stateId, { common: { name } });
+                if (existing && (name !== previousName || existing.common?.read !== false)) {
+                    await this.extendObjectAsync(stateId, { common: { name, read: false } });
                 }
                 await this.setStateAsync(stateId, { val: false, ack: true });
             }

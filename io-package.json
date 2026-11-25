@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "coffeelink",
-    "version": "0.2.6",
+    "version": "0.2.7",
     "titleLang": {
       "en": "Coffee Link",
       "de": "Coffee Link",
@@ -67,6 +67,19 @@
     ],
     "readme": "https://github.com/chrvidal/ioBroker.coffeelink/blob/main/README.md",
     "news": {
+      "0.2.7": {
+        "en": "Fix the machine object hierarchy and migrate command buttons to write-only while preserving user settings.",
+        "de": "Korrigiert die Maschinen-Objektstruktur und stellt Befehlstaster unter Beibehaltung eigener Einstellungen auf nur schreibbar um.",
+        "ru": "Исправлена иерархия объектов машин; кнопки команд доступны только для записи с сохранением настроек пользователя.",
+        "pt": "Corrige a hierarquia das máquinas e migra os botões para apenas escrita, preservando as configurações do usuário.",
+        "nl": "Herstelt de objecthiërarchie en maakt opdrachtknoppen alleen schrijfbaar, met behoud van gebruikersinstellingen.",
+        "fr": "Corrige la hiérarchie des machines et passe les boutons en écriture seule en conservant les réglages utilisateur.",
+        "it": "Corregge la gerarchia delle macchine e imposta i pulsanti in sola scrittura, mantenendo le impostazioni utente.",
+        "es": "Corrige la jerarquía de máquinas y configura los botones como solo escritura, conservando los ajustes del usuario.",
+        "pl": "Poprawia hierarchię maszyn i ustawia przyciski tylko do zapisu, zachowując ustawienia użytkownika.",
+        "uk": "Виправлено ієрархію машин; кнопки команд доступні лише для запису зі збереженням налаштувань користувача.",
+        "zh-cn": "修复咖啡机对象层级，将命令按钮迁移为只写，并保留用户设置。"
+      },
       "0.2.6": {
         "en": "Clean up unpublished preview metadata and use Intel macOS CI runners.",
         "de": "Bereinigt unveröffentlichte Testversions-Metadaten und nutzt Intel-macOS-Runner in CI.",
