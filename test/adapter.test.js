@@ -28,7 +28,12 @@ class AdapterStub extends EventEmitter {
         return this.states.get(id);
     }
     async extendObjectAsync(id, object) {
-        Object.assign(this.objects.get(id).common, object.common);
+        const current = this.objects.get(id);
+        const { common, ...rest } = object;
+        Object.assign(current, rest);
+        if (common) {
+            Object.assign(current.common, common);
+        }
     }
     async delObjectAsync(id) {
         this.objects.delete(id);
@@ -68,6 +73,7 @@ test('creates read-only ioBroker states for connected machine', async () => {
     assert.equal(adapter.states.get('info.connection').val, true);
     assert.equal(adapter.states.get('info.cloud.connected').val, true);
     assert.equal(adapter.states.get('info.deviceCount').val, 1);
+    assert.equal(adapter.objects.get('machines').type, 'folder');
     const coffeeId = [...adapter.states.keys()].find(x => x.endsWith('.cloud.counters.coffee'));
     assert.ok(coffeeId);
     assert.equal(adapter.states.get(coffeeId).val, 42);
@@ -88,6 +94,48 @@ test('creates read-only ioBroker states for connected machine', async () => {
     assert.equal(adapter.states.get(blackTime).val, '2026-10-01T10:00:00.000Z');
     assert.equal(adapter.states.get(milkTime).val, '2026-10-02T10:00:00.000Z');
     assert.equal(adapter.objects.get(blackTime).common.write, false);
+});
+
+test('migrates the machines channel to a folder without replacing machine data', async () => {
+    const adapter = makeAdapter();
+    adapter.objects.set('machines', {
+        type: 'channel',
+        common: { name: 'My coffee machines' },
+        native: { retained: true },
+    });
+    adapter.client = { listDevices: async () => [] };
+    await adapter.refresh();
+    await adapter.refresh();
+    assert.equal(adapter.objects.get('machines').type, 'folder');
+    assert.equal(adapter.objects.get('machines').common.name, 'My coffee machines');
+    assert.deepEqual(adapter.objects.get('machines').native, { retained: true });
+});
+
+test('migrates existing buttons to write-only while retaining personal metadata', async () => {
+    const adapter = makeAdapter();
+    const root = 'machines.synthetic';
+    const id = `${root}.lan.control.profiles.profile1.coffee`;
+    const smartName = { en: 'My coffee' };
+    adapter.objects.set(id, {
+        type: 'state',
+        common: { name: 'My coffee button', type: 'boolean', role: 'button', read: true, write: true, smartName },
+        native: {},
+    });
+    const soul = {
+        profileNames: new Map([[1, 'First']]),
+        drinksByProfile: new Map([[1, new Set(['coffee'])]]),
+    };
+    await adapter.setupControls(root, soul);
+    await adapter.setupControls(root, soul);
+    assert.equal(adapter.objects.get(id).common.name, 'My coffee button');
+    assert.deepEqual(adapter.objects.get(id).common.smartName, smartName);
+    assert.deepEqual(adapter.states.get(id), { val: false, ack: true });
+    for (const object of adapter.objects.values()) {
+        if (object.common.role === 'button') {
+            assert.equal(object.common.read, false);
+            assert.equal(object.common.write, true);
+        }
+    }
 });
 
 test('moves legacy Cloud states and removes obsolete LAN buttons while preserving measurements', async () => {
